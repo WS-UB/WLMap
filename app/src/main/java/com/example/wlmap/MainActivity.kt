@@ -16,7 +16,7 @@ import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
-import com.mapbox.maps.extension.style.layers.generated.LineLayer
+import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
 import com.mapbox.maps.plugin.gestures.gestures
 
@@ -108,15 +108,21 @@ class MainActivity : AppCompatActivity() {
             val layer = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
             // Update layer properties
             layer?.fillOpacity(0.0)
+            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+            symbolLayer?.textOpacity(0.0)
         }
 
         mapView.mapboxMap.getStyle { style ->
             // Get an existing layer by referencing its
             // unique layer ID (LAYER_ID)
+
             val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
             // Update layer properties
             layer?.fillOpacity(0.0)
+            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+            symbolLayer?.textOpacity(0.0)
         }
+
 
         button_f1.setOnClickListener {
             mapView.mapboxMap.getStyle { style ->
@@ -125,6 +131,9 @@ class MainActivity : AppCompatActivity() {
                 val layer = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                 // Update layer properties
                 layer?.fillOpacity(0.0)
+                // Add symbol layer for floor 3 labels
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                symbolLayer?.textOpacity(0.0)
             }
             mapView.mapboxMap.getStyle { style ->
                 // Get an existing layer by referencing its
@@ -132,8 +141,12 @@ class MainActivity : AppCompatActivity() {
                 val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                 // Update layer properties
                 layer?.fillOpacity(0.8)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                symbolLayer?.textOpacity(1.0)
+                symbolLayer?.textAllowOverlap(true)
             }
         }
+
 
         button_f3.setOnClickListener {
             mapView.mapboxMap.getStyle { style ->
@@ -142,6 +155,8 @@ class MainActivity : AppCompatActivity() {
                 val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                 // Update layer properties
                 layer?.fillOpacity(0.0)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                symbolLayer?.textOpacity(0.0)
             }
             mapView.mapboxMap.getStyle { style ->
                 // Get an existing layer by referencing its
@@ -149,6 +164,9 @@ class MainActivity : AppCompatActivity() {
                 val layer = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                 // Update layer properties
                 layer?.fillOpacity(0.8)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                symbolLayer?.textOpacity(1.0)
+                symbolLayer?.textAllowOverlap(true)
             }
         }
 
@@ -158,6 +176,8 @@ class MainActivity : AppCompatActivity() {
         private const val STYLE_CUSTOM = "asset://style.json"
         private const val FLOOR1_LAYOUT = "davis01"
         private const val FLOOR3_LAYOUT = "davis03"
+        private const val FlOOR1_LABELS = "davis01labels"
+        private const val FlOOR3_LABELS = "davis03labels"
         private const val LATITUDE = 43.0028
         private const val LONGITUDE = -78.7873
         private const val ZOOM = 17.9
