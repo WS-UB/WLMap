@@ -3,12 +3,9 @@ package com.example.wlmap
 import android.R
 import android.content.res.Resources
 import android.graphics.Color
-import android.graphics.drawable.ShapeDrawable
-import android.graphics.drawable.shapes.RectShape
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -20,8 +17,6 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import com.mapbox.bindgen.None
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
@@ -104,7 +99,7 @@ class MainActivity : AppCompatActivity() {
 
 
         // Define the options for the dropdown
-        val options = listOf("All","Room", "Bathroom", "Staircase", "Elevator")
+        val options = listOf("Select","All","Room", "Bathroom", "Staircase", "Elevator")
         // Create a Spinner
         val spinner = Spinner(this)
 
@@ -115,18 +110,19 @@ class MainActivity : AppCompatActivity() {
             override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val view = super.getDropDownView(position, convertView, parent)
                 val textView = view.findViewById<TextView>(android.R.id.text1)
-                textView.setTextColor(Color.DKGRAY) // Set the desired text color here
-                view.setBackgroundColor(Color.TRANSPARENT )
+                textView.setTextColor(Color.WHITE) // Set the desired text color here
+                view.setBackgroundColor(Color.DKGRAY)
                 return view
             }
 
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val view = super.getView(position, convertView, parent)
                 val textView = view.findViewById<TextView>(R.id.text1)
-                textView.setTextColor(Color.DKGRAY) // Set the desired text color here
-                view.setBackgroundColor(Color.TRANSPARENT )
+                textView.setTextColor(Color.WHITE) // Set the desired text color here
+                view.setBackgroundColor(Color.DKGRAY)
                 return view
             }
+
         }
         // Set layout parameters for the Spinner
         val params = RelativeLayout.LayoutParams(
@@ -156,6 +152,10 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(
+                                Expression.get("name"), // Existing text
+                            )
+                            symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
                     }else if (layerNum == 1){
                         mapView.mapboxMap.getStyle { style ->
@@ -165,6 +165,10 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(
+                                Expression.get("name"), // Existing text
+                            )
+                            symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
                     }
                 }else if (options[position] == "Room") {
