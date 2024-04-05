@@ -2,19 +2,30 @@ package com.example.wlmap
 
 import android.R
 import android.content.res.Resources
+import android.graphics.Color
+import android.graphics.drawable.ShapeDrawable
+import android.graphics.drawable.shapes.RectShape
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
+import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.Spinner
+import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.mapbox.bindgen.None
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
+import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
@@ -65,8 +76,8 @@ class MainActivity : AppCompatActivity() {
         val button_f1 = Button(this)
         button_f1.id = View.generateViewId() // Generate a unique id for the button
         button_f1.text = "1"
-        button_f1.setBackgroundColor(ContextCompat.getColor(this, R.color.system_surface_bright_dark))
-        button_f1.setTextColor(ContextCompat.getColor(this, R.color.white))
+        button_f1.setBackgroundColor(Color.DKGRAY)
+        button_f1.setTextColor(Color.WHITE)
         val buttonParams1 = LinearLayout.LayoutParams(
             50.dpToPx(),
             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -78,8 +89,8 @@ class MainActivity : AppCompatActivity() {
         val button_f3 = Button(this)
         button_f3.id = View.generateViewId() // Generate a unique id for the button
         button_f3.text = "3"
-        button_f3.setBackgroundColor(ContextCompat.getColor(this, R.color.system_surface_bright_dark))
-        button_f3.setTextColor(ContextCompat.getColor(this, R.color.white))
+        button_f3.setBackgroundColor(Color.DKGRAY)
+        button_f3.setTextColor(Color.WHITE)
         val buttonParams2 = LinearLayout.LayoutParams(
             50.dpToPx(),
             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -92,8 +103,208 @@ class MainActivity : AppCompatActivity() {
         container.addView(floorLevelButtons)
 
 
-        // Set the content view to the container
-        setContentView(container)
+        // Define the options for the dropdown
+        val options = listOf("All","Room", "Bathroom", "Staircase", "Elevator")
+        // Create a Spinner
+        val spinner = Spinner(this)
+
+        // Set up the adapter for the Spinner
+        val adapter = ArrayAdapter(this, R.layout.simple_spinner_item, options)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, options) {
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getDropDownView(position, convertView, parent)
+                val textView = view.findViewById<TextView>(android.R.id.text1)
+                textView.setTextColor(Color.DKGRAY) // Set the desired text color here
+                view.setBackgroundColor(Color.TRANSPARENT )
+                return view
+            }
+
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getView(position, convertView, parent)
+                val textView = view.findViewById<TextView>(R.id.text1)
+                textView.setTextColor(Color.DKGRAY) // Set the desired text color here
+                view.setBackgroundColor(Color.TRANSPARENT )
+                return view
+            }
+        }
+        // Set layout parameters for the Spinner
+        val params = RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.WRAP_CONTENT
+        )
+        params.addRule(RelativeLayout.ALIGN_PARENT_TOP) // Align to the top
+        params.addRule(RelativeLayout.ALIGN_PARENT_END) // Align to the end (right)
+        params.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+        spinner.layoutParams = params
+        // Add the Spinner to the layout
+        container.addView(spinner)
+        var layerNum = 0
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+            }
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (layerNum == 0){
+                    return
+                }
+                if (options[position] == "All"){
+                    if (layerNum == 3){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
+                            // Update layer properties
+                            layerf3?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                        }
+                    }else if (layerNum == 1){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                            // Update layer properties
+                            layerf1?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                        }
+                    }
+                }else if (options[position] == "Room") {
+                    if (layerNum == 3){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
+                            // Update layer properties
+                            layerf3?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+
+                            symbolLayer?.textField(Expression.concat(
+                                Expression.get("name"), // Existing text
+                                Expression.literal(" room") // Additional string
+                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
+                            symbolLayer?.textColor(Color.parseColor("#A020F0"))
+
+                        }
+                    }else if (layerNum == 1){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                            // Update layer properties
+                            layerf1?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(Expression.concat(
+                                Expression.get("name"), // Existing text
+                                Expression.literal(" ROOM") // Additional string
+                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
+                            symbolLayer?.textColor(Color.parseColor("#A020F0"))
+
+                        }
+                    }
+
+                }else if(options[position] == "Bathroom"){
+                    if (layerNum == 3){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
+                            // Update layer properties
+                            layerf3?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(Expression.concat(
+                                Expression.get("name"), // Existing text
+                                Expression.literal(" BATHROOM") // Additional string
+                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
+                            symbolLayer?.textColor(Color.parseColor("#006400"))
+
+                        }
+                    }else if (layerNum == 1){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                            // Update layer properties
+                            layerf1?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(Expression.concat(
+                                Expression.get("name"), // Existing text
+                                Expression.literal(" BATHROOM") // Additional string
+                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
+                            symbolLayer?.textColor(Color.parseColor("#006400"))
+
+                        }
+                    }
+                }else if(options[position] == "Staircase"){
+                    if (layerNum == 3){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
+                            // Update layer properties
+                            layerf3?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(Expression.concat(
+                                Expression.get("name"), // Existing text
+                                Expression.literal(" STAIRS") // Additional string
+                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
+                            symbolLayer?.textColor(Color.parseColor("#00008B"))
+                        }
+                    }else if (layerNum == 1){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                            // Update layer properties
+                            layerf1?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(Expression.concat(
+                                Expression.get("name"), // Existing text
+                                Expression.literal(" STAIRS") // Additional string
+                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
+                            symbolLayer?.textColor(Color.parseColor("#00008B"))
+                        }
+                    }
+                }else if(options[position] == "Elevator"){
+                    if (layerNum == 3){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
+                            // Update layer properties
+                            layerf3?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(Expression.concat(
+                                Expression.get("name"), // Existing text
+                                Expression.literal(" ELEVATOR") // Additional string
+                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
+                            symbolLayer?.textColor(Color.parseColor("#5C4033"))
+                        }
+                    }else if (layerNum == 1){
+                        mapView.mapboxMap.getStyle { style ->
+                            val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                            // Update layer properties
+                            layerf1?.fillOpacity(0.8)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            symbolLayer?.textOpacity(1.0)
+                            symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.textField(Expression.concat(
+                                Expression.get("name"), // Existing text
+                                Expression.literal(" ELEVATOR") // Additional string
+                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
+                            symbolLayer?.textColor(Color.parseColor("#5C4033"))
+                        }
+                    }
+                }
+            }
+
+        }
 
         mapView.gestures.doubleTapToZoomInEnabled = true
         mapView.gestures.rotateEnabled = true
@@ -125,6 +336,7 @@ class MainActivity : AppCompatActivity() {
 
 
         button_f1.setOnClickListener {
+            layerNum = 1
             mapView.mapboxMap.getStyle { style ->
                 // Get an existing layer by referencing its
                 // unique layer ID (LAYER_ID)
@@ -149,6 +361,7 @@ class MainActivity : AppCompatActivity() {
 
 
         button_f3.setOnClickListener {
+            layerNum = 3
             mapView.mapboxMap.getStyle { style ->
                 // Get an existing layer by referencing its
                 // unique layer ID (LAYER_ID)
@@ -171,6 +384,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
+
 
     companion object {
         private const val STYLE_CUSTOM = "asset://style.json"
