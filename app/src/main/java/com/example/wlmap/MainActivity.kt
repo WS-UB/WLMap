@@ -17,6 +17,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.mapbox.bindgen.None
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
@@ -152,6 +153,7 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.filter(Expression.neq(Expression.literal(""), Expression.literal("")))
                             symbolLayer?.textField(
                                 Expression.get("name"), // Existing text
                             )
@@ -165,6 +167,7 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
+                            symbolLayer?.filter(Expression.neq(Expression.literal(""), Expression.literal("")))
                             symbolLayer?.textField(
                                 Expression.get("name"), // Existing text
                             )
