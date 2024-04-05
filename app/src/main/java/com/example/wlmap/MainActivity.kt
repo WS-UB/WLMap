@@ -5,6 +5,8 @@ import android.content.res.Resources
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -15,17 +17,26 @@ import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.mapbox.bindgen.Expected
 import com.mapbox.bindgen.None
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
+import com.mapbox.maps.QueriedRenderedFeature
+import com.mapbox.maps.RenderedQueryGeometry
+import com.mapbox.maps.RenderedQueryOptions
+import com.mapbox.maps.SourceQueryOptions
+import com.mapbox.maps.extension.style.expressions.dsl.generated.string
 import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
+import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
+
 
 
 class MainActivity : AppCompatActivity() {
@@ -312,6 +323,44 @@ class MainActivity : AppCompatActivity() {
             }
 
         }
+
+        mapView.mapboxMap.addOnMapClickListener { point ->
+            // Convert the geographic coordinates to screen coordinates
+            val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
+            val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
+            val currentLayer = layerNum
+            var sourceLayerId = ""
+            if (currentLayer == 3){
+                sourceLayerId = FlOOR3_LABELS
+            }else if(currentLayer == 1){
+                sourceLayerId = FlOOR1_LABELS
+            }
+            val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.neq(Expression.literal(""), Expression.literal("")))
+            mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features->
+                if (features.isValue){
+                    val f = features.value
+                    if (f != null) {
+                        val featureString = f[0].toString()
+                        val propertiesIndex = featureString.indexOf("properties")
+                        if (propertiesIndex != -1) {
+                            var restOfTheString = featureString.substring(propertiesIndex+12)
+                            val bracketIndex = restOfTheString.indexOf("}")
+                            if (bracketIndex != -1) {
+                                restOfTheString = restOfTheString.substring(0, bracketIndex)
+                            }
+                            var finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
+                            Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
+                            // Iterate through each character in the rest of the string
+
+                        }
+//                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            true // Return true to consume the click event
+        }
+
+
 
         mapView.gestures.doubleTapToZoomInEnabled = true
         mapView.gestures.rotateEnabled = true
