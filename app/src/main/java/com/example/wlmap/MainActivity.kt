@@ -29,6 +29,7 @@ import com.mapbox.maps.QueriedRenderedFeature
 import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.SourceQueryOptions
+import com.mapbox.maps.extension.style.expressions.dsl.generated.length
 import com.mapbox.maps.extension.style.expressions.dsl.generated.string
 import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
@@ -340,8 +341,9 @@ class MainActivity : AppCompatActivity() {
                 mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features->
                     if (features.isValue){
                         val f = features.value
-                        if (f != null) {
+                        if (f != null && f.size > 0) {
                             val featureString = f[0].toString()
+                            Log.d("DEBUG", featureString)
                             val propertiesIndex = featureString.indexOf("properties")
                             if (propertiesIndex != -1) {
                                 var restOfTheString = featureString.substring(propertiesIndex+12)
