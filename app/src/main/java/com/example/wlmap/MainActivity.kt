@@ -330,30 +330,31 @@ class MainActivity : AppCompatActivity() {
             val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
             val currentLayer = layerNum
             var sourceLayerId = ""
-            if (currentLayer == 3){
-                sourceLayerId = FlOOR3_LABELS
-            }else if(currentLayer == 1){
-                sourceLayerId = FlOOR1_LABELS
-            }
-            val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.neq(Expression.literal(""), Expression.literal("")))
-            mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features->
-                if (features.isValue){
-                    val f = features.value
-                    if (f != null) {
-                        val featureString = f[0].toString()
-                        val propertiesIndex = featureString.indexOf("properties")
-                        if (propertiesIndex != -1) {
-                            var restOfTheString = featureString.substring(propertiesIndex+12)
-                            val bracketIndex = restOfTheString.indexOf("}")
-                            if (bracketIndex != -1) {
-                                restOfTheString = restOfTheString.substring(0, bracketIndex)
+            if (currentLayer != 0){
+                if (currentLayer == 3){
+                    sourceLayerId = FLOOR3_LAYOUT
+                }else if(currentLayer == 1){
+                    sourceLayerId = FLOOR1_LAYOUT
+                }
+                val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.neq(Expression.literal(""), Expression.literal("")))
+                mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features->
+                    if (features.isValue){
+                        val f = features.value
+                        if (f != null) {
+                            val featureString = f[0].toString()
+                            val propertiesIndex = featureString.indexOf("properties")
+                            if (propertiesIndex != -1) {
+                                var restOfTheString = featureString.substring(propertiesIndex+12)
+                                val bracketIndex = restOfTheString.indexOf("}")
+                                if (bracketIndex != -1) {
+                                    restOfTheString = restOfTheString.substring(0, bracketIndex)
+                                }
+                                var finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
+                                Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
+                                // Iterate through each character in the rest of the string
                             }
-                            var finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
-                            Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
-                            // Iterate through each character in the rest of the string
-
-                        }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
+                        }
                     }
                 }
             }
