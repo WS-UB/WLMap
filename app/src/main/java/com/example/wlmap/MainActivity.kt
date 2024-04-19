@@ -37,7 +37,7 @@ import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
-
+import org.eclipse.paho.client.mqttv3.MqttException
 
 
 class MainActivity : AppCompatActivity() {
@@ -45,6 +45,10 @@ class MainActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        mqttHandler = MqttHandler()
+        mqttHandler.connect(serverUri, clientId)
+        mqttHandler.publish("test/topic","WLMAP IS CONNECTED TO THE SERVER")
 
         //setContentView(R.layout.activity_main)
 
@@ -326,6 +330,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         mapView.mapboxMap.addOnMapClickListener { point ->
+
             // Convert the geographic coordinates to screen coordinates
             val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
             val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
@@ -354,6 +359,7 @@ class MainActivity : AppCompatActivity() {
                                 var finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
                                 Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
                                 // Iterate through each character in the rest of the string
+
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
                         }
@@ -441,11 +447,21 @@ class MainActivity : AppCompatActivity() {
                 symbolLayer?.textAllowOverlap(true)
             }
         }
-
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            mqttHandler.disconnect()
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
     }
 
-
     companion object {
+        private val serverUri = "tcp://128.205.218.189:1883"
+        private val clientId = "Client ID"
+        private lateinit var mqttHandler: MqttHandler
+
         private const val STYLE_CUSTOM = "asset://style.json"
         private const val FLOOR1_LAYOUT = "davis01"
         private const val FLOOR3_LAYOUT = "davis03"
