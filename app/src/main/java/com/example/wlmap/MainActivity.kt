@@ -30,8 +30,11 @@ import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.SourceQueryOptions
 import com.mapbox.maps.extension.style.expressions.dsl.generated.length
+import com.mapbox.maps.extension.style.expressions.dsl.generated.literal
 import com.mapbox.maps.extension.style.expressions.dsl.generated.string
+import com.mapbox.maps.extension.style.expressions.dsl.generated.zoom
 import com.mapbox.maps.extension.style.expressions.generated.Expression
+import com.mapbox.maps.extension.style.expressions.generated.Expression.Companion.exponential
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
@@ -415,6 +418,33 @@ class MainActivity : AppCompatActivity() {
                 val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                 symbolLayer?.textOpacity(1.0)
                 symbolLayer?.textAllowOverlap(true)
+
+                symbolLayer?.textSize(Expression.interpolate {
+                    exponential {
+                        literal(2)
+                    }
+                    zoom()
+                    stop{
+                        literal(14)
+                        literal(1)
+                    }
+                    stop{
+                        literal(16)
+                        literal(5)
+                    }
+                    stop {
+                        literal(18)
+                        literal(7)
+                    }
+                    stop {
+                        literal(20)
+                        literal(20)
+                    }
+                    stop{
+                        literal(22)
+                        literal(30)
+                    }
+                })
             }
         }
 
@@ -439,6 +469,32 @@ class MainActivity : AppCompatActivity() {
                 val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
                 symbolLayer?.textOpacity(1.0)
                 symbolLayer?.textAllowOverlap(true)
+                symbolLayer?.textSize(Expression.interpolate {
+                    exponential {
+                        literal(2)
+                    }
+                    zoom()
+                    stop{
+                        literal(14)
+                        literal(1)
+                    }
+                    stop{
+                        literal(16)
+                        literal(5)
+                    }
+                    stop {
+                        literal(18)
+                        literal(7)
+                    }
+                    stop {
+                        literal(20)
+                        literal(20)
+                    }
+                    stop{
+                        literal(22)
+                        literal(30)
+                    }
+                })
             }
         }
 
