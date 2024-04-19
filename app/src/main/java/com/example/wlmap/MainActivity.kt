@@ -172,6 +172,7 @@ class MainActivity : AppCompatActivity() {
                             symbolLayer?.textField(
                                 Expression.get("name"), // Existing text
                             )
+                            layerf3?.fillColor("#808080")
                             symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
                     }else if (layerNum == 1){
@@ -186,6 +187,7 @@ class MainActivity : AppCompatActivity() {
                             symbolLayer?.textField(
                                 Expression.get("name"), // Existing text
                             )
+                            layerf1?.fillColor("#808080")
                             symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
                     }
@@ -197,15 +199,19 @@ class MainActivity : AppCompatActivity() {
                             layerf3?.fillOpacity(0.8)
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
+                            layerf3?.fillColor(
+                                Expression.match(
+                                    Expression.get("type"), // Attribute to match
+                                    Expression.literal("room"), Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
+                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                )
+                            )
                             symbolLayer?.textAllowOverlap(true)
-
-                            symbolLayer?.textField(Expression.concat(
-                                Expression.get("name"), // Existing text
-                                Expression.literal(" room") // Additional string
-                            ))
+//                            symbolLayer?.textField(Expression.concat(
+//                                Expression.get("name"), // Existing text
+//                                Expression.literal(" room") // Additional string
+//                            ))
                             symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
-                            symbolLayer?.textColor(Color.parseColor("#A020F0"))
-
                         }
                     }else if (layerNum == 1){
                         mapView.mapboxMap.getStyle { style ->
@@ -215,12 +221,18 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.textField(Expression.concat(
-                                Expression.get("name"), // Existing text
-                                Expression.literal(" ROOM") // Additional string
-                            ))
+                            layerf1?.fillColor(
+                                Expression.match(
+                                    Expression.get("type"), // Attribute to match
+                                    Expression.literal("room"), Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
+                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                )
+                            )
+//                            symbolLayer?.textField(Expression.concat(
+//                                Expression.get("name"), // Existing text
+//                                Expression.literal(" ROOM") // Additional string
+//                            ))
                             symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
-                            symbolLayer?.textColor(Color.parseColor("#A020F0"))
 
                         }
                     }
@@ -234,12 +246,14 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.textField(Expression.concat(
-                                Expression.get("name"), // Existing text
-                                Expression.literal(" BATHROOM") // Additional string
-                            ))
+                            layerf3?.fillColor(
+                                Expression.match(
+                                    Expression.get("type"), // Attribute to match
+                                    Expression.literal("bathroom"), Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
+                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                )
+                            )
                             symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
-                            symbolLayer?.textColor(Color.parseColor("#006400"))
 
                         }
                     }else if (layerNum == 1){
@@ -250,12 +264,14 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.textField(Expression.concat(
-                                Expression.get("name"), // Existing text
-                                Expression.literal(" BATHROOM") // Additional string
-                            ))
+                            layerf1?.fillColor(
+                                Expression.match(
+                                    Expression.get("type"), // Attribute to match
+                                    Expression.literal("bathroom"), Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
+                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                )
+                            )
                             symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
-                            symbolLayer?.textColor(Color.parseColor("#006400"))
 
                         }
                     }
@@ -268,12 +284,14 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.textField(Expression.concat(
-                                Expression.get("name"), // Existing text
-                                Expression.literal(" STAIRS") // Additional string
-                            ))
+                            layerf3?.fillColor(
+                                Expression.match(
+                                    Expression.get("type"), // Attribute to match
+                                    Expression.literal("stairwell"), Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
+                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                )
+                            )
                             symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
-                            symbolLayer?.textColor(Color.parseColor("#00008B"))
                         }
                     }else if (layerNum == 1){
                         mapView.mapboxMap.getStyle { style ->
@@ -283,12 +301,14 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.textField(Expression.concat(
-                                Expression.get("name"), // Existing text
-                                Expression.literal(" STAIRS") // Additional string
-                            ))
+                            layerf1?.fillColor(
+                                Expression.match(
+                                    Expression.get("type"), // Attribute to match
+                                    Expression.literal("stairwell"), Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
+                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                )
+                            )
                             symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
-                            symbolLayer?.textColor(Color.parseColor("#00008B"))
                         }
                     }
                 }else if(options[position] == "Elevator"){
@@ -300,12 +320,14 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.textField(Expression.concat(
-                                Expression.get("name"), // Existing text
-                                Expression.literal(" ELEVATOR") // Additional string
-                            ))
+                            layerf3?.fillColor(
+                                Expression.match(
+                                    Expression.get("type"), // Attribute to match
+                                    Expression.literal("elevator"), Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
+                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                )
+                            )
                             symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
-                            symbolLayer?.textColor(Color.parseColor("#5C4033"))
                         }
                     }else if (layerNum == 1){
                         mapView.mapboxMap.getStyle { style ->
@@ -315,12 +337,14 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.textField(Expression.concat(
-                                Expression.get("name"), // Existing text
-                                Expression.literal(" ELEVATOR") // Additional string
-                            ))
+                            layerf1?.fillColor(
+                                Expression.match(
+                                    Expression.get("type"), // Attribute to match
+                                    Expression.literal("elevator"), Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
+                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                )
+                            )
                             symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
-                            symbolLayer?.textColor(Color.parseColor("#5C4033"))
                         }
                     }
                 }
@@ -418,7 +442,9 @@ class MainActivity : AppCompatActivity() {
                 val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                 symbolLayer?.textOpacity(1.0)
                 symbolLayer?.textAllowOverlap(true)
-
+                symbolLayer?.textFont(
+                    listOf("DIN Offc Pro Bold") // Specify the font family with bold weight
+                )
                 symbolLayer?.textSize(Expression.interpolate {
                     exponential {
                         literal(2)
@@ -469,6 +495,9 @@ class MainActivity : AppCompatActivity() {
                 val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
                 symbolLayer?.textOpacity(1.0)
                 symbolLayer?.textAllowOverlap(true)
+                symbolLayer?.textFont(
+                    listOf("DIN Offc Pro Bold") // Specify the font family with bold weight
+                )
                 symbolLayer?.textSize(Expression.interpolate {
                     exponential {
                         literal(2)
@@ -509,7 +538,7 @@ class MainActivity : AppCompatActivity() {
         private const val FlOOR3_LABELS = "davis03labels"
         private const val LATITUDE = 43.0028
         private const val LONGITUDE = -78.7873
-        private const val ZOOM = 17.9
+        private const val ZOOM = 18.0
     }
 
     private fun Int.dpToPx(): Int {
