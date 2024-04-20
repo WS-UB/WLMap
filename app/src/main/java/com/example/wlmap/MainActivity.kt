@@ -42,13 +42,25 @@ import org.eclipse.paho.client.mqttv3.MqttException
 
 class MainActivity : AppCompatActivity() {
 
+    private val serverUri = "tcp://128.205.218.189:1883"
+    private val clientId = "Client ID"
+    private val serverTopic = "receive-wl-map"
+    private lateinit var mqttHandler: MqttHandler
+
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId)
-        mqttHandler.publish("test/topic","WLMAP IS CONNECTED TO THE SERVER")
+        mqttHandler.subscribe(serverTopic)
+
+        mqttHandler.onMessageReceived = { message ->
+            runOnUiThread {
+                Log.e("SERVER", message)
+            }
+        }
+
 
         //setContentView(R.layout.activity_main)
 
@@ -332,6 +344,12 @@ class MainActivity : AppCompatActivity() {
         mapView.mapboxMap.addOnMapClickListener { point ->
 
             // Convert the geographic coordinates to screen coordinates
+            val lat = point.latitude()
+            val long = point.longitude()
+            val serverMessage = "ack,$lat,$long"
+
+            mqttHandler.publish("test/topic",serverMessage)
+
             val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
             val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
             val currentLayer = layerNum
@@ -359,6 +377,7 @@ class MainActivity : AppCompatActivity() {
                                 var finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
                                 Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
                                 // Iterate through each character in the rest of the string
+                                // mqttHandler.publish(serverTopic,finalString)
 
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
@@ -448,6 +467,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
     override fun onDestroy() {
         super.onDestroy()
         try {
@@ -458,10 +478,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private val serverUri = "tcp://128.205.218.189:1883"
-        private val clientId = "Client ID"
-        private lateinit var mqttHandler: MqttHandler
-
         private const val STYLE_CUSTOM = "asset://style.json"
         private const val FLOOR1_LAYOUT = "davis01"
         private const val FLOOR3_LAYOUT = "davis03"
