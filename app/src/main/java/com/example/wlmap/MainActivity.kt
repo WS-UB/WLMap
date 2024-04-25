@@ -23,7 +23,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.internal.ViewUtils.hideKeyboard
 import com.mapbox.bindgen.Expected
 import com.mapbox.bindgen.None
 import com.mapbox.geojson.Point
@@ -83,7 +82,7 @@ class MainActivity : AppCompatActivity() {
         )
         paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
         paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_END)
-        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
         floorLevelButtons.orientation = LinearLayout.VERTICAL
         floorLevelButtons.layoutParams = paramsButtons
 
@@ -356,10 +355,7 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-        fun hideKeyboard(context: Context, view: View) {
-            val inputMethodManager = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
-        }
+        //searchbar
         val searchView = SearchView(this)
         val layoutParams = RelativeLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -369,25 +365,54 @@ class MainActivity : AppCompatActivity() {
         searchView.queryHint = "Search Room Name"
         searchView.isIconifiedByDefault = false
         searchView.setBackgroundColor(Color.DKGRAY)
-        // Add the SearchView to your layout
-        container.addView(searchView,layoutParams)
 
+        // Add the Searchbar to your layout
+        container.addView(searchView, layoutParams)
 
+        // Keep track of whether the search view is focused
+        var isSearchViewFocused = false
+        // Set an OnFocusChangeListener to the search view
+        searchView.setOnQueryTextFocusChangeListener { _, hasFocus ->
+            isSearchViewFocused = hasFocus
+        }
 
+        fun hideKeyboard(context: Context, view: View) {
+            val inputMethodManager =
+                context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
+        }
 
+        mapView.mapboxMap.addOnMapClickListener { point ->
+            if (!isSearchViewFocused) {
+                // If the search view is not focused, collapse it
+                searchView.isIconified = true
+            }
+            // Hide the keyboard regardless of the focus state
+            hideKeyboard(this, mapView)
+            true
+        }
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                // Handle search submission
-                // Zoom to the room when it matches the search query
+            override fun onQueryTextSubmit(query: String): Boolean {
+                // This method will be called when the user submits the query (e.g., by pressing Enter)
+                // You can perform your desired action here
+                if (layerNum == 1) {
+
+                }else if (layerNum == 3){
+
+                }
+
                 return true
             }
 
-            override fun onQueryTextChange(newText: String?): Boolean {
-                // Handle text changes while typing (optional)
+            override fun onQueryTextChange(newText: String): Boolean {
+                // This method will be called when the text in the search view changes
+                // You can implement any filtering logic here if needed
                 return false
             }
         })
+
+
 
         mapView.mapboxMap.addOnMapClickListener { point ->
             // Convert the geographic coordinates to screen coordinates
@@ -415,7 +440,7 @@ class MainActivity : AppCompatActivity() {
                                 if (bracketIndex != -1) {
                                     restOfTheString = restOfTheString.substring(0, bracketIndex)
                                 }
-                                var finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
+                                val finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
                                 Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
                                 // Iterate through each character in the rest of the string
                             }
