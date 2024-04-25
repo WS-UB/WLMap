@@ -1,6 +1,7 @@
 package com.example.wlmap
 
 import android.R
+import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
 import android.os.Build
@@ -10,16 +11,19 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.internal.ViewUtils.hideKeyboard
 import com.mapbox.bindgen.Expected
 import com.mapbox.bindgen.None
 import com.mapbox.geojson.Point
@@ -351,6 +355,39 @@ class MainActivity : AppCompatActivity() {
             }
 
         }
+
+        fun hideKeyboard(context: Context, view: View) {
+            val inputMethodManager = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
+        }
+        val searchView = SearchView(this)
+        val layoutParams = RelativeLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        searchView.queryHint = "Search Room Name"
+        searchView.isIconifiedByDefault = false
+        searchView.setBackgroundColor(Color.DKGRAY)
+        // Add the SearchView to your layout
+        container.addView(searchView,layoutParams)
+
+
+
+
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                // Handle search submission
+                // Zoom to the room when it matches the search query
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                // Handle text changes while typing (optional)
+                return false
+            }
+        })
 
         mapView.mapboxMap.addOnMapClickListener { point ->
             // Convert the geographic coordinates to screen coordinates
