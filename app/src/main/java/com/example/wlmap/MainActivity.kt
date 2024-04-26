@@ -35,6 +35,7 @@ import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
+import com.mapbox.maps.plugin.animation.CameraAnimatorOptions
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 
@@ -387,6 +388,7 @@ class MainActivity : AppCompatActivity() {
             val inputMethodManager =
                 context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
+            searchView.clearFocus()
         }
 
         fun calculateCentroid(polygon: Polygon): Point {
@@ -394,6 +396,20 @@ class MainActivity : AppCompatActivity() {
             Log.d("DEBUG2",polygon.coordinates().size.toString())
             return  polygon.coordinates()[0][0]
 
+        }
+
+        searchView.setOnQueryTextFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                // The search bar has gained focus, recenter the map
+                mapView.mapboxMap.setCamera(
+                    CameraOptions.Builder()
+                        .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                        .pitch(0.0)
+                        .zoom(ZOOM)
+                        .bearing(0.0)
+                        .build()
+                )
+            }
         }
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
