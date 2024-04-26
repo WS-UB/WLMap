@@ -36,6 +36,7 @@ import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
 import com.mapbox.maps.plugin.animation.CameraAnimatorOptions
+import com.mapbox.maps.plugin.animation.flyTo
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 
@@ -52,7 +53,7 @@ class MainActivity : AppCompatActivity() {
         val container = RelativeLayout(this)
 
         val mapView = MapView(this)
-        mapView.mapboxMap.setCamera(
+        mapView.mapboxMap.flyTo(
             CameraOptions.Builder()
                 .center(Point.fromLngLat(LONGITUDE, LATITUDE))
                 .pitch(0.0)
@@ -401,7 +402,7 @@ class MainActivity : AppCompatActivity() {
         searchView.setOnQueryTextFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
                 // The search bar has gained focus, recenter the map
-                mapView.mapboxMap.setCamera(
+                mapView.mapboxMap.flyTo(
                     CameraOptions.Builder()
                         .center(Point.fromLngLat(LONGITUDE, LATITUDE))
                         .pitch(0.0)
@@ -412,8 +413,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        var userQuery = ""
+
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
+                userQuery = query
                 // This method will be called when the user submits the query (e.g., by pressing Enter)
                 // You can perform your desired action here
                 var sourceLayerId = ""
@@ -443,7 +447,7 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
 
-                mapView.mapboxMap.setCamera(
+                mapView.mapboxMap.flyTo(
                     CameraOptions.Builder()
                         .center(Point.fromLngLat(LONGITUDE, LATITUDE))
                         .pitch(0.0)
@@ -473,7 +477,7 @@ class MainActivity : AppCompatActivity() {
                             val room = f[0].queriedFeature.feature.geometry() as Polygon
                             Log.d("DEBUG",f[0].queriedFeature.feature.getProperty("name").toString())
                             val center = calculateCentroid(room)
-                            mapView.mapboxMap.setCamera(
+                            mapView.mapboxMap.flyTo(
                                 CameraOptions.Builder()
                                     .center(center)
                                     .pitch(0.0)
@@ -503,6 +507,33 @@ class MainActivity : AppCompatActivity() {
             }
             // Hide the keyboard regardless of the focus state
             hideKeyboard(this, mapView)
+
+            mapView.mapboxMap.getStyle { style ->
+                var sourceLayerId = ""
+                var sourceLabelLayerId = ""
+                if (layerNum == 1) {
+                    sourceLayerId = FLOOR1_LAYOUT
+                    sourceLabelLayerId = FlOOR1_LABELS
+                }else if (layerNum == 3) {
+                    sourceLayerId = FLOOR3_LAYOUT
+                    sourceLabelLayerId = FlOOR3_LABELS
+                }
+                val layer = style.getLayerAs<FillLayer>(sourceLayerId)
+                val source = layer?.sourceId
+                // Update layer properties
+                layer?.fillOpacity(0.8)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
+                symbolLayer?.textOpacity(1.0)
+                symbolLayer?.textAllowOverlap(true)
+                layer?.fillColor(
+                    Expression.match(
+                        Expression.get("name"), // Attribute to match
+                        Expression.literal(userQuery), Expression.color(Color.parseColor("#808080")), // Color for "room" polygons
+                        Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                    )
+                )
+            }
+
             // Convert the geographic coordinates to screen coordinates
             val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
             val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
@@ -533,6 +564,15 @@ class MainActivity : AppCompatActivity() {
                                 // Iterate through each character in the rest of the string
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
+                        } else {
+                            mapView.mapboxMap.flyTo(
+                                CameraOptions.Builder()
+                                    .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                                    .pitch(0.0)
+                                    .zoom(ZOOM)
+                                    .bearing(0.0)
+                                    .build()
+                            )
                         }
                     }
                 }
