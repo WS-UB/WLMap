@@ -390,12 +390,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun calculateCentroid(polygon: Polygon): Point {
-            var area = 0.0
-            var centroidLat = 0.0
-            var centroidLon = 0.0
-
-            // Assuming polygon.coordinates() returns a list of lists of points
-            val ring = polygon.coordinates()[0]
+            Log.d("DEBUG",polygon.coordinates().toString())
+            Log.d("DEBUG2",polygon.coordinates().size.toString())
             return  polygon.coordinates()[0][0]
 
         }
