@@ -2,12 +2,13 @@ package com.example.wlmap
 
 import LocationPermissionHelper
 import android.R
+import android.animation.ValueAnimator
+import android.content.ContentValues
 import android.content.res.Resources
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -21,40 +22,91 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import com.mapbox.bindgen.Expected
-import com.mapbox.bindgen.None
+import com.mapbox.common.location.AccuracyLevel
+import com.mapbox.common.location.DeviceLocationProvider
+import com.mapbox.common.location.IntervalSettings
+import com.mapbox.common.location.Location
+import com.mapbox.common.location.LocationError
+import com.mapbox.common.location.LocationObserver
+import com.mapbox.common.location.LocationProviderRequest
+import com.mapbox.common.location.LocationService
+import com.mapbox.common.location.LocationServiceFactory
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
-import com.mapbox.maps.QueriedRenderedFeature
 import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
-import com.mapbox.maps.SourceQueryOptions
-import com.mapbox.maps.extension.style.expressions.dsl.generated.length
-import com.mapbox.maps.extension.style.expressions.dsl.generated.string
 import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
-import com.mapbox.maps.plugin.PuckBearing
+import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
+import com.mapbox.maps.plugin.annotation.annotations
+import com.mapbox.maps.plugin.annotation.generated.CircleAnnotation
+import com.mapbox.maps.plugin.annotation.generated.CircleAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.createCircleAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
-import com.mapbox.maps.plugin.locationcomponent.LocationComponentPlugin
-import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
-import com.mapbox.maps.plugin.locationcomponent.location
-import com.mapbox.maps.plugin.viewport.viewport
+import com.mapbox.maps.plugin.locationcomponent.LocationConsumer
 import org.eclipse.paho.client.mqttv3.MqttException
 import java.lang.ref.WeakReference
-import com.mapbox.maps.plugin.locationcomponent.location
+
+
+class WLocationConsumer: LocationConsumer {
+    override fun onBearingUpdated(vararg bearing: Double, options: (ValueAnimator.() -> Unit)?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onError(error: LocationError) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onHorizontalAccuracyRadiusUpdated(
+        vararg radius: Double,
+        options: (ValueAnimator.() -> Unit)?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onLocationUpdated(vararg location: Point, options: (ValueAnimator.() -> Unit)?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onPuckAccuracyRadiusAnimatorDefaultOptionsUpdated(options: ValueAnimator.() -> Unit) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onPuckBearingAnimatorDefaultOptionsUpdated(options: ValueAnimator.() -> Unit) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onPuckLocationAnimatorDefaultOptionsUpdated(options: ValueAnimator.() -> Unit) {
+        TODO("Not yet implemented")
+    }
+}
 
 
 class MainActivity : AppCompatActivity() {
+
+    private val STYLE_CUSTOM = "asset://style.json"
+    private val FLOOR1_LAYOUT = "davis01"
+    private val FLOOR3_LAYOUT = "davis03"
+    private val FlOOR1_LABELS = "davis01labels"
+    private val FlOOR3_LABELS = "davis03labels"
+    private val LATITUDE = 43.0028
+    private val LONGITUDE = -78.7873
+    private val ZOOM = 17.9
 
     private val serverUri = "tcp://128.205.218.189:1883"
     private val clientId = "Client ID"
     private val serverTopic = "receive-wl-map"
     private lateinit var mqttHandler: MqttHandler
+
     private lateinit var locationPermissionHelper: LocationPermissionHelper
+    private var circleAnnotationId: CircleAnnotation? = null
+    private var lastLocation: Pair<Double, Double>? = null
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,27 +114,93 @@ class MainActivity : AppCompatActivity() {
         locationPermissionHelper = LocationPermissionHelper(WeakReference(this))
         locationPermissionHelper.checkPermissions {
 
-            //startMqttHandler()
+            startMqttHandler()
 
             // Create a vertical LinearLayout to hold the MapView and buttons
             val container = RelativeLayout(this)
             val mapView = MapView(this)
+            val annotationApi = mapView.annotations
+            val circleAnnotationManager = annotationApi.createCircleAnnotationManager()
+            val polylineAnnotationManager = annotationApi.createPolylineAnnotationManager()
 
-            with(mapView) {
-                location.locationPuck = createDefault2DPuck(withBearing = true)
-                location.enabled = true
-                location.pulsingEnabled = true
-                location.puckBearing = PuckBearing.HEADING
-                mapView.mapboxMap.setCamera(
-                    CameraOptions.Builder()
-                        .center(Point.fromLngLat(LONGITUDE, LATITUDE))
-                        .pitch(0.0)
-                        .zoom(ZOOM)
-                        .bearing(0.0)
-                        .build()
-                )
 
+            val locationService : LocationService = LocationServiceFactory.getOrCreate()
+            var locationProvider: DeviceLocationProvider? = null
+
+            val request = LocationProviderRequest.Builder()
+                .interval(IntervalSettings.Builder().interval(0L).minimumInterval(0L).maximumInterval(0L).build())
+                .displacement(0F)
+                .accuracy(AccuracyLevel.HIGHEST)
+                .build();
+
+            val result = locationService.getDeviceLocationProvider(request)
+            locationProvider = result.value
+
+            val locationObserver = object: LocationObserver {
+                override fun onLocationUpdateReceived(locations: MutableList<Location>) {
+                    Log.e(ContentValues.TAG, "Location update received: $locations.")
+
+                    // Assuming you want to plot the first location received
+                    val location = updateLocation(locations[0].latitude,locations[0].longitude)
+                    val point = Point.fromLngLat(location.second,location.first)
+                    Log.e(ContentValues.TAG, "Location update received: $location")
+
+                    // Set options for the resulting circle layer.
+                    val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+
+                        // Define a geographic coordinate.
+                        .withPoint(point)
+
+                        // Style the circle that will be added to the map.
+                        .withCircleRadius(8.0)
+                        .withCircleColor("#4a90e2")
+                        .withCircleStrokeWidth(3.5)
+                        .withCircleStrokeColor("#FAF9F6")
+
+                    // Removing the previous location with the new update
+                    circleAnnotationId?.let {
+                        circleAnnotationManager.delete(it)
+                    }
+
+                    // Create and add the new circle annotation to the map
+                    circleAnnotationId = circleAnnotationManager.create(circleAnnotationOptions)
+                }
             }
+            locationProvider?.addLocationObserver(locationObserver)
+
+
+            // Define a list of geographic coordinates to be connected.
+            val points = listOf(
+                Point.fromLngLat( -78.78759,43.002665),
+                Point.fromLngLat( -78.78753812740018,43.00269736914555),
+                Point.fromLngLat( -78.78753812740018,43.002728514107844),
+                Point.fromLngLat( -78.78753957936134,43.002758621754225),
+                Point.fromLngLat( -78.78753855612797,43.00279588440392),
+                Point.fromLngLat( -78.78753904102501,43.00284741340417),
+                Point.fromLngLat( -78.78747266477298,43.00285070834681),
+                Point.fromLngLat( -78.78738743910438,43.00284966186862),
+                Point.fromLngLat( -78.78738237545627,43.00286521647894)
+            )
+
+            // Set options for the resulting line layer.
+            val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                .withPoints(points)
+                // Style the line that will be added to the map.
+                .withLineColor("#0f53ff")
+                .withLineWidth(6.3)
+                .withLineJoin(LineJoin.ROUND)
+
+            // Add the resulting line to the map.
+            polylineAnnotationManager.create(polylineAnnotationOptions)
+
+            mapView.mapboxMap.setCamera(
+                CameraOptions.Builder()
+                    .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                    .pitch(0.0)
+                    .zoom(ZOOM)
+                    .bearing(0.0)
+                    .build()
+            )
 
             // Add the map view to the activity (you can also add it to other views as a child)
             //setContentView(mapView)
@@ -436,54 +554,35 @@ class MainActivity : AppCompatActivity() {
             }
 
             mapView.mapboxMap.addOnMapClickListener { point ->
-                val lat = point.latitude()
-                val long = point.longitude()
-                val serverMessage = "wl-map-ack,$lat,$long"
 
-                mqttHandler.publish("test/topic", serverMessage)
+                //publishLocation(point)
 
-
-                // Convert the geographic coordinates to screen coordinates
                 val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
                 val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
                 val currentLayer = layerNum
                 var sourceLayerId = ""
-                if (currentLayer != 0) {
-                    if (currentLayer == 3) {
+                if (currentLayer != 0){
+                    if (currentLayer == 3){
                         sourceLayerId = FLOOR3_LAYOUT
-                    } else if (currentLayer == 1) {
+                    }else if(currentLayer == 1){
                         sourceLayerId = FLOOR1_LAYOUT
                     }
-                    val renderedQueryOptions = RenderedQueryOptions(
-                        listOf(sourceLayerId),
-                        Expression.neq(Expression.literal(""), Expression.literal(""))
-                    )
-                    mapView.mapboxMap.queryRenderedFeatures(
-                        renderedQueryGeometry,
-                        renderedQueryOptions
-                    ) { features ->
-                        if (features.isValue) {
+                    val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.neq(Expression.literal(""), Expression.literal("")))
+                    mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features->
+                        if (features.isValue){
                             val f = features.value
                             if (f != null && f.size > 0) {
                                 val featureString = f[0].toString()
                                 Log.d("DEBUG", featureString)
                                 val propertiesIndex = featureString.indexOf("properties")
                                 if (propertiesIndex != -1) {
-                                    var restOfTheString =
-                                        featureString.substring(propertiesIndex + 12)
+                                    var restOfTheString = featureString.substring(propertiesIndex+12)
                                     val bracketIndex = restOfTheString.indexOf("}")
                                     if (bracketIndex != -1) {
                                         restOfTheString = restOfTheString.substring(0, bracketIndex)
                                     }
-                                    var finalString =
-                                        restOfTheString.replace("\"", "").replace(",", ", ")
-                                            .replace(":", ": ")
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        finalString,
-                                        Toast.LENGTH_SHORT
-                                    )
-                                        .show()
+                                    var finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
+                                    Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
                                     // Iterate through each character in the rest of the string
                                 }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
@@ -645,6 +744,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateLocation(newLatitude: Double, newLongitude: Double): Pair<Double, Double> {
+        if (lastLocation == null) {
+            lastLocation = Pair(newLatitude, newLongitude)
+            return lastLocation!!
+        }
+
+        val alpha = 0.1 // Smoothing factor
+        val latitude = lastLocation!!.first + alpha * (newLatitude - lastLocation!!.first)
+        val longitude = lastLocation!!.second + alpha * (newLongitude - lastLocation!!.second)
+
+        lastLocation = Pair(latitude, longitude)
+        return lastLocation!!
+    }
+
+    private fun publishLocation(point: Point) {
+        val lat = point.latitude()
+        val long = point.longitude()
+        val serverMessage = "ack,$lat,$long"
+
+        mqttHandler.publish("test/topic",serverMessage)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         try {
@@ -654,16 +775,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    companion object {
-        private const val STYLE_CUSTOM = "asset://style.json"
-        private const val FLOOR1_LAYOUT = "davis01"
-        private const val FLOOR3_LAYOUT = "davis03"
-        private const val FlOOR1_LABELS = "davis01labels"
-        private const val FlOOR3_LABELS = "davis03labels"
-        private const val LATITUDE = 43.0028
-        private const val LONGITUDE = -78.7873
-        private const val ZOOM = 17.9
-    }
 
     private fun Int.dpToPx(): Int {
         val density = Resources.getSystem().displayMetrics.density
