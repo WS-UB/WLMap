@@ -4,50 +4,40 @@ import android.R
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import com.mapbox.bindgen.Expected
-import com.mapbox.bindgen.None
-import com.mapbox.geojson.Feature
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
-import com.mapbox.maps.QueriedRenderedFeature
-import com.mapbox.maps.QueriedSourceFeature
-import com.mapbox.maps.QuerySourceFeaturesCallback
 import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
-import com.mapbox.maps.SourceQueryOptions
-import com.mapbox.maps.extension.style.expressions.dsl.generated.length
-import com.mapbox.maps.extension.style.expressions.dsl.generated.literal
-import com.mapbox.maps.extension.style.expressions.dsl.generated.string
-import com.mapbox.maps.extension.style.expressions.dsl.generated.zoom
 import com.mapbox.maps.extension.style.expressions.generated.Expression
-import com.mapbox.maps.extension.style.expressions.generated.Expression.Companion.exponential
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
-
 
 
 class MainActivity : AppCompatActivity() {
@@ -129,6 +119,7 @@ class MainActivity : AppCompatActivity() {
         // Set up the adapter for the Spinner
         val adapter = ArrayAdapter(this, R.layout.simple_spinner_item, options)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
         spinner.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, options) {
             override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val view = super.getDropDownView(position, convertView, parent)
@@ -154,7 +145,7 @@ class MainActivity : AppCompatActivity() {
         )
         params.addRule(RelativeLayout.ALIGN_PARENT_TOP) // Align to the top
         params.addRule(RelativeLayout.ALIGN_PARENT_END) // Align to the end (right)
-        params.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+        params.setMargins(16.dpToPx(), 16.dpToPx(), 60.dpToPx(), 16.dpToPx())
         spinner.layoutParams = params
         // Add the Spinner to the layout
         container.addView(spinner)
@@ -360,6 +351,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         //searchbar
+
         val searchView = SearchView(this)
         val layoutParams = RelativeLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -369,7 +361,19 @@ class MainActivity : AppCompatActivity() {
         searchView.queryHint = "Search Room Name"
         searchView.isIconifiedByDefault = false
         searchView.setBackgroundColor(Color.DKGRAY)
-
+        // change color
+        val id = searchView.context.resources
+            .getIdentifier("android:id/search_src_text", null, null)
+        val closeButtonId = searchView.context.resources
+            .getIdentifier("android:id/search_close_btn", null, null)
+        val magnifyId = searchView.context.resources.getIdentifier("android:id/search_mag_icon",null,null)
+        val magnifyView = searchView.findViewById<View>(magnifyId) as ImageView
+        magnifyView.setColorFilter(Color.WHITE)
+        val buttonView = searchView.findViewById<View>(closeButtonId) as ImageView
+        buttonView.setColorFilter(Color.WHITE)
+        val textView = searchView.findViewById<View>(id) as TextView
+        textView.setTextColor(Color.WHITE)
+        textView.setHintTextColor(Color.WHITE)
         // Add the Searchbar to your layout
         container.addView(searchView, layoutParams)
 
@@ -412,6 +416,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 mapView.mapboxMap.getStyle { style ->
                     val layer = style.getLayerAs<FillLayer>(sourceLayerId)
+                    val source = layer?.sourceId
                     // Update layer properties
                     layer?.fillOpacity(0.8)
                     val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
@@ -425,6 +430,21 @@ class MainActivity : AppCompatActivity() {
                         )
                     )
                 }
+
+
+//                val screenpoint = ScreenCoordinate(mapView.width / 2.0, mapView.height / 2.0)
+//                val point = mapView.mapboxMap.coordinateForPixel(screenpoint)
+//                val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
+//                val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
+//                val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.eq(Expression.literal("name"), Expression.literal(query)))
+//                mapView.mapboxMap.queryRenderedFeatures( renderedQueryGeometry,renderedQueryOptions) { features ->
+//                    if (features.isValue){
+//                        val f = features.value
+//                        if (f != null && f.size > 0) {
+//                            Log.d("DEBUG", f.toString())
+//                            }
+//                        }
+//                    }
                 return true
             }
 
