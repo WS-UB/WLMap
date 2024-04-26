@@ -4,20 +4,16 @@ import android.R
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewTreeObserver
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
@@ -27,11 +23,14 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.mapbox.geojson.Geometry
 import com.mapbox.geojson.Point
+import com.mapbox.geojson.Polygon
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
+import com.mapbox.maps.ScreenBox
 import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
@@ -390,14 +389,15 @@ class MainActivity : AppCompatActivity() {
             inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
         }
 
-        mapView.mapboxMap.addOnMapClickListener { point ->
-            if (!isSearchViewFocused) {
-                // If the search view is not focused, collapse it
-                searchView.isIconified = true
-            }
-            // Hide the keyboard regardless of the focus state
-            hideKeyboard(this, mapView)
-            true
+        fun calculateCentroid(polygon: Polygon): Point {
+            var area = 0.0
+            var centroidLat = 0.0
+            var centroidLon = 0.0
+
+            // Assuming polygon.coordinates() returns a list of lists of points
+            val ring = polygon.coordinates()[0]
+            return  polygon.coordinates()[0][0]
+
         }
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
@@ -431,20 +431,47 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
 
+                mapView.mapboxMap.setCamera(
+                    CameraOptions.Builder()
+                        .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                        .pitch(0.0)
+                        .zoom(ZOOM)
+                        .bearing(0.0)
+                        .build()
+                )
+                val visibleBounds = mapView.mapboxMap.coordinateBoundsForCamera(CameraOptions.Builder()
+                    .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                    .pitch(0.0)
+                    .zoom(ZOOM)
+                    .bearing(0.0)
+                    .build())
 
-//                val screenpoint = ScreenCoordinate(mapView.width / 2.0, mapView.height / 2.0)
-//                val point = mapView.mapboxMap.coordinateForPixel(screenpoint)
-//                val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
-//                val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
-//                val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.eq(Expression.literal("name"), Expression.literal(query)))
-//                mapView.mapboxMap.queryRenderedFeatures( renderedQueryGeometry,renderedQueryOptions) { features ->
-//                    if (features.isValue){
-//                        val f = features.value
-//                        if (f != null && f.size > 0) {
-//                            Log.d("DEBUG", f.toString())
-//                            }
-//                        }
-//                    }
+                val screenPoint1 = mapView.mapboxMap.pixelForCoordinate(visibleBounds.northwest())
+                val screenPoint2 = mapView.mapboxMap.pixelForCoordinate(visibleBounds.southeast())
+                val visibleAreaPolygon = ScreenBox(screenPoint1, screenPoint2)
+
+
+                // Create a RenderedQueryGeometry from the visible area geometry
+                val renderedQueryGeometry = RenderedQueryGeometry(visibleAreaPolygon)
+                val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.eq(Expression.get("name"), Expression.literal(query)))
+                mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features ->
+                    if (features.isValue) {
+                        val f = features.value
+                        if (f != null && f.size > 0) {
+                            val room = f[0].queriedFeature.feature.geometry() as Polygon
+                            Log.d("DEBUG",f[0].queriedFeature.feature.getProperty("name").toString())
+                            val center = calculateCentroid(room)
+                            mapView.mapboxMap.setCamera(
+                                CameraOptions.Builder()
+                                    .center(center)
+                                    .pitch(0.0)
+                                    .zoom(20.0)
+                                    .bearing(0.0)
+                                    .build()
+                            )
+                        }
+                    }
+                }
                 return true
             }
 
@@ -458,6 +485,12 @@ class MainActivity : AppCompatActivity() {
 
 
         mapView.mapboxMap.addOnMapClickListener { point ->
+            if (!isSearchViewFocused) {
+                // If the search view is not focused, collapse it
+                searchView.isIconified = true
+            }
+            // Hide the keyboard regardless of the focus state
+            hideKeyboard(this, mapView)
             // Convert the geographic coordinates to screen coordinates
             val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
             val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
