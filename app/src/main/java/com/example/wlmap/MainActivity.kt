@@ -21,14 +21,18 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.bindgen.Expected
 import com.mapbox.bindgen.None
+import com.mapbox.geojson.Feature
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.QueriedRenderedFeature
+import com.mapbox.maps.QueriedSourceFeature
+import com.mapbox.maps.QuerySourceFeaturesCallback
 import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.SourceQueryOptions
@@ -396,12 +400,31 @@ class MainActivity : AppCompatActivity() {
             override fun onQueryTextSubmit(query: String): Boolean {
                 // This method will be called when the user submits the query (e.g., by pressing Enter)
                 // You can perform your desired action here
+                var sourceLayerId = ""
+                var sourceLabelLayerId = ""
                 if (layerNum == 1) {
-
+                    sourceLayerId = FLOOR1_LAYOUT
+                    sourceLabelLayerId = FlOOR1_LABELS
                 }else if (layerNum == 3){
+                    sourceLayerId = FLOOR3_LAYOUT
+                    sourceLabelLayerId = FlOOR3_LABELS
 
                 }
-
+                mapView.mapboxMap.getStyle { style ->
+                    val layer = style.getLayerAs<FillLayer>(sourceLayerId)
+                    // Update layer properties
+                    layer?.fillOpacity(0.8)
+                    val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
+                    symbolLayer?.textOpacity(1.0)
+                    symbolLayer?.textAllowOverlap(true)
+                    layer?.fillColor(
+                        Expression.match(
+                            Expression.get("name"), // Attribute to match
+                            Expression.literal(query), Expression.color(Color.parseColor("#39ff14")), // Color for "room" polygons
+                            Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                        )
+                    )
+                }
                 return true
             }
 
