@@ -3,6 +3,7 @@ package com.example.wlmap
 import LocationPermissionHelper
 import android.R
 import android.content.ContentValues
+import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
 import android.os.Bundle
@@ -10,11 +11,14 @@ import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -27,10 +31,12 @@ import com.mapbox.common.location.LocationProviderRequest
 import com.mapbox.common.location.LocationService
 import com.mapbox.common.location.LocationServiceFactory
 import com.mapbox.geojson.Point
+import com.mapbox.geojson.Polygon
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
+import com.mapbox.maps.ScreenBox
 import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
@@ -77,7 +83,7 @@ class MainActivity : AppCompatActivity() {
     private var circleAnnotationId: CircleAnnotation? = null
     private var lastLocation: Pair<Double, Double>? = null
     private var layerNum: Int = 0
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         locationPermissionHelper = LocationPermissionHelper(WeakReference(this))
@@ -149,7 +155,7 @@ class MainActivity : AppCompatActivity() {
                             layerf3?.fillColor("#808080")
                             symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
-                    } else if (layerNum == 1) {
+                    }else if (layerNum == 1){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -157,12 +163,7 @@ class MainActivity : AppCompatActivity() {
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.filter(
-                                Expression.neq(
-                                    Expression.literal(""),
-                                    Expression.literal("")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.neq(Expression.literal(""), Expression.literal("")))
                             symbolLayer?.textField(
                                 Expression.get("name"), // Existing text
                             )
@@ -181,20 +182,18 @@ class MainActivity : AppCompatActivity() {
                             layerf3?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("room"),
-                                    Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
+                                    Expression.literal("room"), Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#808080")) // Default color for other polygons
                                 )
                             )
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("room"),
-                                    Expression.get("type")
-                                )
-                            )
+//                            symbolLayer?.textField(Expression.concat(
+//                                Expression.get("name"), // Existing text
+//                                Expression.literal(" room") // Additional string
+//                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
                         }
-                    } else if (layerNum == 1) {
+                    }else if (layerNum == 1){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -205,23 +204,21 @@ class MainActivity : AppCompatActivity() {
                             layerf1?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("room"),
-                                    Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
+                                    Expression.literal("room"), Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#808080")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("room"),
-                                    Expression.get("type")
-                                )
-                            )
+//                            symbolLayer?.textField(Expression.concat(
+//                                Expression.get("name"), // Existing text
+//                                Expression.literal(" ROOM") // Additional string
+//                            ))
+                            symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
 
                         }
                     }
 
-                } else if (spinnerOptions[position] == "Bathroom") {
-                    if (layerNum == 3) {
+                }else if(spinnerOptions[position] == "Bathroom"){
+                    if (layerNum == 3){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
@@ -232,17 +229,11 @@ class MainActivity : AppCompatActivity() {
                             layerf3?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("bathroom"),
-                                    Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
+                                    Expression.literal("bathroom"), Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#808080")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("bathroom"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
 
                         }
                     } else if (layerNum == 1) {
@@ -256,17 +247,11 @@ class MainActivity : AppCompatActivity() {
                             layerf1?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("bathroom"),
-                                    Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
+                                    Expression.literal("bathroom"), Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#808080")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("bathroom"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
 
                         }
                     }
@@ -282,17 +267,11 @@ class MainActivity : AppCompatActivity() {
                             layerf3?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("stairwell"),
-                                    Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
+                                    Expression.literal("stairwell"), Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#808080")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("stairwell"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
                         }
                     } else if (layerNum == 1) {
                         mapView.mapboxMap.getStyle { style ->
@@ -305,17 +284,11 @@ class MainActivity : AppCompatActivity() {
                             layerf1?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("stairwell"),
-                                    Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
+                                    Expression.literal("stairwell"), Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#808080")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("stairwell"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
                         }
                     }
                 } else if (spinnerOptions[position] == "Elevator") {
@@ -330,17 +303,11 @@ class MainActivity : AppCompatActivity() {
                             layerf3?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("elevator"),
-                                    Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
+                                    Expression.literal("elevator"), Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#808080")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("elevator"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
                         }
                     } else if (layerNum == 1) {
                         mapView.mapboxMap.getStyle { style ->
@@ -353,27 +320,203 @@ class MainActivity : AppCompatActivity() {
                             layerf1?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("elevator"),
-                                    Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
+                                    Expression.literal("elevator"), Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#808080")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("elevator"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
                         }
                     }
                 }
             }
+
         }
 
+        //searchbar
+
+        val searchView = SearchView(this)
+        val layoutParams = RelativeLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        searchView.queryHint = "Search Room Name"
+        searchView.isIconifiedByDefault = false
+        searchView.setBackgroundColor(Color.DKGRAY)
+        // change color
+        val id = searchView.context.resources
+            .getIdentifier("android:id/search_src_text", null, null)
+        val closeButtonId = searchView.context.resources
+            .getIdentifier("android:id/search_close_btn", null, null)
+        val magnifyId = searchView.context.resources.getIdentifier("android:id/search_mag_icon",null,null)
+        val magnifyView = searchView.findViewById<View>(magnifyId) as ImageView
+        magnifyView.setColorFilter(Color.WHITE)
+        val buttonView = searchView.findViewById<View>(closeButtonId) as ImageView
+        buttonView.setColorFilter(Color.WHITE)
+        val textView = searchView.findViewById<View>(id) as TextView
+        textView.setTextColor(Color.WHITE)
+        textView.setHintTextColor(Color.WHITE)
+        // Add the Searchbar to your layout
+        container.addView(searchView, layoutParams)
+
+        // Keep track of whether the search view is focused
+        var isSearchViewFocused = false
+        // Set an OnFocusChangeListener to the search view
+        searchView.setOnQueryTextFocusChangeListener { _, hasFocus ->
+            isSearchViewFocused = hasFocus
+        }
+
+        fun hideKeyboard(context: Context, view: View) {
+            val inputMethodManager =
+                context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
+            searchView.clearFocus()
+        }
+
+        fun calculateCentroid(polygon: Polygon): Point {
+            Log.d("DEBUG",polygon.coordinates().toString())
+            Log.d("DEBUG2",polygon.coordinates().size.toString())
+            return  polygon.coordinates()[0][0]
+
+        }
+
+        searchView.setOnQueryTextFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                // The search bar has gained focus, recenter the map
+                mapView.mapboxMap.flyTo(
+                    CameraOptions.Builder()
+                        .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                        .pitch(0.0)
+                        .zoom(ZOOM)
+                        .bearing(0.0)
+                        .build()
+                )
+            }
+        }
+
+        var userQuery = ""
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String): Boolean {
+                userQuery = query
+                // This method will be called when the user submits the query (e.g., by pressing Enter)
+                // You can perform your desired action here
+                var sourceLayerId = ""
+                var sourceLabelLayerId = ""
+                if (layerNum == 1) {
+                    sourceLayerId = FLOOR1_LAYOUT
+                    sourceLabelLayerId = FlOOR1_LABELS
+                }else if (layerNum == 3){
+                    sourceLayerId = FLOOR3_LAYOUT
+                    sourceLabelLayerId = FlOOR3_LABELS
+
+                }
+                mapView.mapboxMap.getStyle { style ->
+                    val layer = style.getLayerAs<FillLayer>(sourceLayerId)
+                    val source = layer?.sourceId
+                    // Update layer properties
+                    layer?.fillOpacity(0.8)
+                    val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
+                    symbolLayer?.textOpacity(1.0)
+                    symbolLayer?.textAllowOverlap(true)
+                    layer?.fillColor(
+                        Expression.match(
+                            Expression.get("name"), // Attribute to match
+                            Expression.literal(query), Expression.color(Color.parseColor("#39ff14")), // Color for "room" polygons
+                            Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                        )
+                    )
+                }
+
+                mapView.mapboxMap.flyTo(
+                    CameraOptions.Builder()
+                        .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                        .pitch(0.0)
+                        .zoom(ZOOM)
+                        .bearing(0.0)
+                        .build()
+                )
+                val visibleBounds = mapView.mapboxMap.coordinateBoundsForCamera(CameraOptions.Builder()
+                    .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                    .pitch(0.0)
+                    .zoom(ZOOM)
+                    .bearing(0.0)
+                    .build())
+
+                val screenPoint1 = mapView.mapboxMap.pixelForCoordinate(visibleBounds.northwest())
+                val screenPoint2 = mapView.mapboxMap.pixelForCoordinate(visibleBounds.southeast())
+                val visibleAreaPolygon = ScreenBox(screenPoint1, screenPoint2)
+
+
+                // Create a RenderedQueryGeometry from the visible area geometry
+                val renderedQueryGeometry = RenderedQueryGeometry(visibleAreaPolygon)
+                val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.eq(Expression.get("name"), Expression.literal(query)))
+                mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features ->
+                    if (features.isValue) {
+                        val f = features.value
+                        if (f != null && f.size > 0) {
+                            val room = f[0].queriedFeature.feature.geometry() as Polygon
+                            Log.d("DEBUG",f[0].queriedFeature.feature.getProperty("name").toString())
+                            val center = calculateCentroid(room)
+                            mapView.mapboxMap.flyTo(
+                                CameraOptions.Builder()
+                                    .center(center)
+                                    .pitch(0.0)
+                                    .zoom(20.0)
+                                    .bearing(0.0)
+                                    .build()
+                            )
+                        }
+                    }
+                }
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String): Boolean {
+                // This method will be called when the text in the search view changes
+                // You can implement any filtering logic here if needed
+                return false
+            }
+        })
+
+
+
         mapView.mapboxMap.addOnMapClickListener { point ->
-
             //publishLocation(point)
+            if (!isSearchViewFocused) {
+                // If the search view is not focused, collapse it
+                searchView.isIconified = true
+            }
+            // Hide the keyboard regardless of the focus state
+            hideKeyboard(this, mapView)
 
+            mapView.mapboxMap.getStyle { style ->
+                var sourceLayerId = ""
+                var sourceLabelLayerId = ""
+                if (layerNum == 1) {
+                    sourceLayerId = FLOOR1_LAYOUT
+                    sourceLabelLayerId = FlOOR1_LABELS
+                }else if (layerNum == 3) {
+                    sourceLayerId = FLOOR3_LAYOUT
+                    sourceLabelLayerId = FlOOR3_LABELS
+                }
+                val layer = style.getLayerAs<FillLayer>(sourceLayerId)
+                val source = layer?.sourceId
+                // Update layer properties
+                layer?.fillOpacity(0.8)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
+                symbolLayer?.textOpacity(1.0)
+                symbolLayer?.textAllowOverlap(true)
+                layer?.fillColor(
+                    Expression.match(
+                        Expression.get("name"), // Attribute to match
+                        Expression.literal(userQuery), Expression.color(Color.parseColor("#808080")), // Color for "room" polygons
+                        Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                    )
+                )
+            }
+
+            // Convert the geographic coordinates to screen coordinates
             val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
             val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
             val currentLayer = layerNum
@@ -403,6 +546,15 @@ class MainActivity : AppCompatActivity() {
                                 // Iterate through each character in the rest of the string
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
+                        } else {
+                            mapView.mapboxMap.flyTo(
+                                CameraOptions.Builder()
+                                    .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                                    .pitch(0.0)
+                                    .zoom(ZOOM)
+                                    .bearing(0.0)
+                                    .build()
+                            )
                         }
                     }
                 }
@@ -515,12 +667,7 @@ class MainActivity : AppCompatActivity() {
                 })
             }
         }
-    }
 
-    private fun startMQTTHandler() {
-        mqttHandler = MqttHandler()
-        mqttHandler.connect(serverUri, clientId)
-        mqttHandler.subscribe(serverTopic)
 
         mqttHandler.onMessageReceived = { message ->
             runOnUiThread {
@@ -734,42 +881,51 @@ class MainActivity : AppCompatActivity() {
 
                 // Create and add the new circle annotation to the map
                 circleAnnotationId = circleAnnotationManager.create(circleAnnotationOptions)
+                symbolLayer?.textFont(
+                    listOf("DIN Offc Pro Bold") // Specify the font family with bold weight
+                )
+                symbolLayer?.textSize(Expression.interpolate {
+                    exponential {
+                        literal(2)
+                    }
+                    zoom()
+                    stop{
+                        literal(14)
+                        literal(1)
+                    }
+                    stop{
+                        literal(16)
+                        literal(5)
+                    }
+                    stop {
+                        literal(18)
+                        literal(7)
+                    }
+                    stop {
+                        literal(20)
+                        literal(20)
+                    }
+                    stop{
+                        literal(22)
+                        literal(30)
+                    }
+                })
             }
         }
-        locationProvider?.addLocationObserver(locationObserver)
+
     }
 
-    private fun updateLocation(newLatitude: Double, newLongitude: Double): Pair<Double, Double> {
-        if (lastLocation == null) {
-            lastLocation = Pair(newLatitude, newLongitude)
-            return lastLocation!!
-        }
 
-        val alpha = 0.1 // Smoothing factor
-        val latitude = lastLocation!!.first + alpha * (newLatitude - lastLocation!!.first)
-        val longitude = lastLocation!!.second + alpha * (newLongitude - lastLocation!!.second)
-
-        lastLocation = Pair(latitude, longitude)
-        return lastLocation!!
+    companion object {
+        private const val STYLE_CUSTOM = "asset://style.json"
+        private const val FLOOR1_LAYOUT = "davis01"
+        private const val FLOOR3_LAYOUT = "davis03"
+        private const val FlOOR1_LABELS = "davis01labels"
+        private const val FlOOR3_LABELS = "davis03labels"
+        private const val LATITUDE = 43.0028
+        private const val LONGITUDE = -78.7873
+        private const val ZOOM = 17.9
     }
-
-    private fun publishLocation(point: Point) {
-        val lat = point.latitude()
-        val long = point.longitude()
-        val serverMessage = "ack,$lat,$long"
-
-        mqttHandler.publish("test/topic",serverMessage)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        try {
-            mqttHandler.disconnect()
-        } catch (e: MqttException) {
-            e.printStackTrace()
-        }
-    }
-
 
     private fun Int.dpToPx(): Int {
         val density = Resources.getSystem().displayMetrics.density
