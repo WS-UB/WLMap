@@ -23,7 +23,7 @@
                 "name": "Buildings, extruded"
             }
         },
-        "mapbox:thumb": "data:image/webp;base64,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",
+        "mapbox:thumb": "data:image/webp;base64,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",
         "mapbox:uiParadigm": "layers",
         "mapbox:decompiler": {
             "id": "clti4urul00l401phgs9i3cqu",
@@ -38,7 +38,9 @@
                         "davis01",
                         "davis01labels",
                         "davis03",
-                        "davis03labels"
+                        "davis03labels",
+                        "davis03doors",
+                        "davis01doors"
                     ]
                 }
             ],
@@ -58,6 +60,9 @@
                     },
                     "building-entrance": {
                         "paint": {"text-color": "hsl(260, 0%, 0%)"}
+                    },
+                    "building": {
+                        "paint": {"fill-outline-color": "rgba(0, 0, 0, 0.8)"}
                     }
                 }
             },
@@ -65,7 +70,7 @@
             "propConfig": {
                 "buildings": {
                     "colorBuilding": "#e8e8e8",
-                    "colorBase": "#787373",
+                    "colorBase": "#fd3535",
                     "buildingStyle": "2D",
                     "underground": false,
                     "houseNumbers": false
@@ -73,18 +78,18 @@
             }
         }
     },
-    "center": [-78.78712550229059, 43.002669605699076],
-    "zoom": 19.102336659443647,
+    "center": [-78.78720854991228, 43.002541040568914],
+    "zoom": 19.04160819061278,
     "bearing": 0,
     "pitch": 0,
     "lights": [],
     "sources": {
         "composite": {
-            "url": "mapbox://mapbox.mapbox-streets-v8,cgvarghe.9fttwm2n,cgvarghe.a68htg3z",
+            "url": "mapbox://mapbox.mapbox-streets-v8,cgvarghe.9fttwm2n,cgvarghe.a68htg3z,cgvarghe.5ioydhfd,cgvarghe.92zo19pk",
             "type": "vector"
         }
     },
-    "sprite": "mapbox://sprites/cgvarghe/clti4urul00l401phgs9i3cqu/ck2u8j60r58fu0sgyxrigm3cu",
+    "sprite": "mapbox://sprites/cgvarghe/clti4urul00l401phgs9i3cqu/1ba7tf2zinp5lfhcv1slhrmlg",
     "glyphs": "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
     "projection": {"name": "equalEarth"},
     "layers": [
@@ -120,7 +125,7 @@
                     16,
                     1
                 ],
-                "fill-outline-color": "rgba(43, 43, 43, 0.8)"
+                "fill-outline-color": "rgba(0, 0, 0, 0.8)"
             }
         },
         {
@@ -155,10 +160,26 @@
             "source-layer": "DAVIS03_Poly-3rn7v9",
             "layout": {"text-field": ["to-string", ["get", "name"]]},
             "paint": {"text-color": "hsl(43, 100%, 0%)"}
+        },
+        {
+            "id": "davis03doors",
+            "type": "symbol",
+            "source": "composite",
+            "source-layer": "door_icons_DAVIS03-396sig",
+            "layout": {"icon-size": 0.25, "icon-image": "door-open-svgrepo-com"},
+            "paint": {"icon-opacity": 0.85}
+        },
+        {
+            "id": "davis01doors",
+            "type": "symbol",
+            "source": "composite",
+            "source-layer": "door_icons_DAVIS01-bxpmxh",
+            "layout": {"icon-image": "door-open-svgrepo-com", "icon-size": 0.25},
+            "paint": {"icon-opacity": 0.85}
         }
     ],
     "created": "2024-03-08T04:04:39.165Z",
-    "modified": "2024-03-29T22:19:48.745Z",
+    "modified": "2024-04-27T06:01:13.835Z",
     "id": "clti4urul00l401phgs9i3cqu",
     "owner": "cgvarghe",
     "visibility": "private",

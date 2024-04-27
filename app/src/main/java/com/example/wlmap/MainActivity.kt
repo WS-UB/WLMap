@@ -38,8 +38,8 @@ import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.ScreenBox
 import com.mapbox.maps.extension.style.expressions.generated.Expression
-import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
+import com.mapbox.maps.extension.style.layers.generated.FillLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.plugin.animation.flyTo
@@ -63,9 +63,11 @@ class MainActivity : AppCompatActivity() {
     private val serverTopic = "receive-wl-map"
     private val STYLE_CUSTOM = "asset://style.json"
     private val FLOOR1_LAYOUT = "davis01"
+    private val FLOOR1_LABELS = "davis01labels"
+    private val FLOOR1_DOORS = "davis01doors"
+    private val FLOOR3_LABELS = "davis03labels"
     private val FLOOR3_LAYOUT = "davis03"
-    private val FlOOR1_LABELS = "davis01labels"
-    private val FlOOR3_LABELS = "davis03labels"
+    private val FLOOR3_DOORS = "davis03doors"
     private val spinnerOptions = listOf("Select", "All", "Room", "Bathroom", "Staircase", "Elevator")
     private val LATITUDE = 43.0028
     private val LONGITUDE = -78.7873
@@ -96,7 +98,7 @@ class MainActivity : AppCompatActivity() {
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
         // 2. Connection to UB VPN or UB network
-        //startMQTTHandler()
+        initMQTTHandler()
 
         // Create a RelativeLayout to hold the MapView
         val container = RelativeLayout(this)
@@ -104,7 +106,7 @@ class MainActivity : AppCompatActivity() {
 
         // Start user LocationPuck plotting on and launching user NavigationRouting mapView
         userLocationPuck()
-        userNavigationRouting()
+        //userNavigationRouting()
 
         // Initialize mapView to Davis Hall and set parameters
         initMapView()
@@ -140,7 +142,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
                             layerf3?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR3_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             symbolLayer?.filter(
@@ -160,7 +164,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
                             layerf1?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             symbolLayer?.filter(Expression.neq(Expression.literal(""), Expression.literal("")))
@@ -177,7 +183,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
                             layerf3?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR3_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             layerf3?.fillColor(
                                 Expression.match(
@@ -198,7 +206,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
                             layerf1?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             layerf1?.fillColor(
@@ -223,7 +233,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
                             layerf3?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR3_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             layerf3?.fillColor(
@@ -241,7 +253,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
                             layerf1?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             layerf1?.fillColor(
@@ -261,7 +275,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
                             layerf3?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR3_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             layerf3?.fillColor(
@@ -278,7 +294,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
                             layerf1?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             layerf1?.fillColor(
@@ -297,7 +315,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
                             layerf3?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR3_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR3_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             layerf3?.fillColor(
@@ -314,7 +334,9 @@ class MainActivity : AppCompatActivity() {
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
                             layerf1?.fillOpacity(0.8)
-                            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                            doorLayer?.iconOpacity(1.0)
+                            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
                             layerf1?.fillColor(
@@ -403,19 +425,23 @@ class MainActivity : AppCompatActivity() {
                 // You can perform your desired action here
                 var sourceLayerId = ""
                 var sourceLabelLayerId = ""
+                var sourceLayerDoorId = ""
                 if (layerNum == 1) {
                     sourceLayerId = FLOOR1_LAYOUT
-                    sourceLabelLayerId = FlOOR1_LABELS
+                    sourceLabelLayerId = FLOOR1_LABELS
+                    sourceLayerDoorId = FLOOR1_DOORS
                 }else if (layerNum == 3){
                     sourceLayerId = FLOOR3_LAYOUT
-                    sourceLabelLayerId = FlOOR3_LABELS
-
+                    sourceLabelLayerId = FLOOR3_LABELS
+                    sourceLayerDoorId = FLOOR3_DOORS
                 }
                 mapView.mapboxMap.getStyle { style ->
                     val layer = style.getLayerAs<FillLayer>(sourceLayerId)
                     val source = layer?.sourceId
                     // Update layer properties
                     layer?.fillOpacity(0.8)
+                    val doorLayer = style.getLayerAs<SymbolLayer>(sourceLayerDoorId)
+                    doorLayer?.iconOpacity(1.0)
                     val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
                     symbolLayer?.textOpacity(1.0)
                     symbolLayer?.textAllowOverlap(true)
@@ -482,7 +508,9 @@ class MainActivity : AppCompatActivity() {
 
 
         mapView.mapboxMap.addOnMapClickListener { point ->
-            //publishLocation(point)
+
+            publishLocation(point)
+
             if (!isSearchViewFocused) {
                 // If the search view is not focused, collapse it
                 searchView.isIconified = true
@@ -493,17 +521,22 @@ class MainActivity : AppCompatActivity() {
             mapView.mapboxMap.getStyle { style ->
                 var sourceLayerId = ""
                 var sourceLabelLayerId = ""
+                var sourceLayerDoorId = ""
                 if (layerNum == 1) {
                     sourceLayerId = FLOOR1_LAYOUT
-                    sourceLabelLayerId = FlOOR1_LABELS
+                    sourceLabelLayerId = FLOOR1_LABELS
+                    sourceLayerDoorId = FLOOR1_DOORS
                 }else if (layerNum == 3) {
                     sourceLayerId = FLOOR3_LAYOUT
-                    sourceLabelLayerId = FlOOR3_LABELS
+                    sourceLabelLayerId = FLOOR3_LABELS
+                    sourceLayerDoorId = FLOOR3_DOORS
                 }
                 val layer = style.getLayerAs<FillLayer>(sourceLayerId)
                 val source = layer?.sourceId
                 // Update layer properties
                 layer?.fillOpacity(0.8)
+                val doorLayer = style.getLayerAs<SymbolLayer>(sourceLayerDoorId)
+                doorLayer?.iconOpacity(1.0)
                 val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
                 symbolLayer?.textOpacity(1.0)
                 symbolLayer?.textAllowOverlap(true)
@@ -547,6 +580,7 @@ class MainActivity : AppCompatActivity() {
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
                         } else {
+                            /*
                             mapView.mapboxMap.flyTo(
                                 CameraOptions.Builder()
                                     .center(Point.fromLngLat(LONGITUDE, LATITUDE))
@@ -555,6 +589,8 @@ class MainActivity : AppCompatActivity() {
                                     .bearing(0.0)
                                     .build()
                             )
+
+                             */
                         }
                     }
                 }
@@ -570,8 +606,10 @@ class MainActivity : AppCompatActivity() {
                 val layer = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                 // Update layer properties
                 layer?.fillOpacity(0.0)
+                val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR3_DOORS)
+                doorLayer?.iconOpacity(0.0)
                 // Add symbol layer for floor 3 labels
-                val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR3_LABELS)
                 symbolLayer?.textOpacity(0.0)
             }
             mapView.mapboxMap.getStyle { style ->
@@ -580,7 +618,9 @@ class MainActivity : AppCompatActivity() {
                 val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                 // Update layer properties
                 layer?.fillOpacity(0.8)
-                val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                doorLayer?.iconOpacity(1.0)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                 symbolLayer?.textOpacity(1.0)
                 symbolLayer?.textAllowOverlap(true)
                 symbolLayer?.textFont(
@@ -624,7 +664,9 @@ class MainActivity : AppCompatActivity() {
                 val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                 // Update layer properties
                 layer?.fillOpacity(0.0)
-                val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+                val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                doorLayer?.iconOpacity(0.0)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                 symbolLayer?.textOpacity(0.0)
             }
             mapView.mapboxMap.getStyle { style ->
@@ -633,7 +675,9 @@ class MainActivity : AppCompatActivity() {
                 val layer = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                 // Update layer properties
                 layer?.fillOpacity(0.8)
-                val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+                val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR3_DOORS)
+                doorLayer?.iconOpacity(1.0)
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR3_LABELS)
                 symbolLayer?.textOpacity(1.0)
                 symbolLayer?.textAllowOverlap(true)
                 symbolLayer?.textFont(
@@ -667,14 +711,9 @@ class MainActivity : AppCompatActivity() {
                 })
             }
         }
-
-
-        mqttHandler.onMessageReceived = { message ->
-            runOnUiThread {
-                Log.e("SERVER", message)
-            }
-        }
     }
+
+
 
     private fun initRoomSelector(): Spinner {
         // Create a Spinner
@@ -724,15 +763,14 @@ class MainActivity : AppCompatActivity() {
     private fun initFloorSelector(): LinearLayout {
         // Create a LinearLayout to hold the buttons
         val floorLevelButtons = LinearLayout(this)
-        floorLevelButtons.id =
-            View.generateViewId() // Generate a unique id for the LinearLayout
+        floorLevelButtons.id = View.generateViewId() // Generate a unique id for the LinearLayout
         val paramsButtons = RelativeLayout.LayoutParams(
             RelativeLayout.LayoutParams.WRAP_CONTENT,
             RelativeLayout.LayoutParams.WRAP_CONTENT
         )
         paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
         paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_END)
-        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
         floorLevelButtons.orientation = LinearLayout.VERTICAL
         floorLevelButtons.layoutParams = paramsButtons
 
@@ -777,28 +815,30 @@ class MainActivity : AppCompatActivity() {
 
         // Get and load the style for floor 1 of Davis Hall
         mapView.mapboxMap.getStyle { style ->
-            // Get an existing layer by referencing its
-            // unique layer ID (LAYER_ID)
             val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
-            // Update layer properties
             layer?.fillOpacity(0.0)
-            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR1_LABELS)
+
+            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+            doorLayer?.iconOpacity(0.0)
+
+            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
             symbolLayer?.textOpacity(0.0)
         }
 
         // Get and load styles for floor 3 of Davis Hall
         mapView.mapboxMap.getStyle { style ->
-            // Get an existing layer by referencing its
-            // unique layer ID (LAYER_ID)
             val layer = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
-            // Update layer properties
             layer?.fillOpacity(0.0)
-            val symbolLayer = style.getLayerAs<SymbolLayer>(FlOOR3_LABELS)
+
+            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR3_DOORS)
+            doorLayer?.iconOpacity(0.0)
+
+            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR3_LABELS)
             symbolLayer?.textOpacity(0.0)
         }
 
         // Set camera position to Davis Hall
-        mapView.mapboxMap.flyTo(
+        mapView.mapboxMap.setCamera(
             CameraOptions.Builder()
                 .center(Point.fromLngLat(LONGITUDE, LATITUDE))
                 .pitch(0.0)
@@ -881,50 +921,46 @@ class MainActivity : AppCompatActivity() {
 
                 // Create and add the new circle annotation to the map
                 circleAnnotationId = circleAnnotationManager.create(circleAnnotationOptions)
-                symbolLayer?.textFont(
-                    listOf("DIN Offc Pro Bold") // Specify the font family with bold weight
-                )
-                symbolLayer?.textSize(Expression.interpolate {
-                    exponential {
-                        literal(2)
-                    }
-                    zoom()
-                    stop{
-                        literal(14)
-                        literal(1)
-                    }
-                    stop{
-                        literal(16)
-                        literal(5)
-                    }
-                    stop {
-                        literal(18)
-                        literal(7)
-                    }
-                    stop {
-                        literal(20)
-                        literal(20)
-                    }
-                    stop{
-                        literal(22)
-                        literal(30)
-                    }
-                })
             }
         }
 
     }
 
+    private fun updateLocation(newLatitude: Double, newLongitude: Double): Pair<Double, Double> {
+        if (lastLocation == null) {
+            lastLocation = Pair(newLatitude, newLongitude)
+            return lastLocation!!
+        }
+        val alpha = 0.1 // Smoothing factor
+        val latitude = lastLocation!!.first + alpha * (newLatitude - lastLocation!!.first)
+        val longitude = lastLocation!!.second + alpha * (newLongitude - lastLocation!!.second)
+        lastLocation = Pair(latitude, longitude)
+        return lastLocation!!
+    }
 
-    companion object {
-        private const val STYLE_CUSTOM = "asset://style.json"
-        private const val FLOOR1_LAYOUT = "davis01"
-        private const val FLOOR3_LAYOUT = "davis03"
-        private const val FlOOR1_LABELS = "davis01labels"
-        private const val FlOOR3_LABELS = "davis03labels"
-        private const val LATITUDE = 43.0028
-        private const val LONGITUDE = -78.7873
-        private const val ZOOM = 17.9
+    private fun initMQTTHandler() {
+        mqttHandler = MqttHandler()
+        mqttHandler.connect(serverUri, clientId)
+        mqttHandler.subscribe(serverTopic)
+        mqttHandler.onMessageReceived = { message ->
+            runOnUiThread {
+                Log.e("SERVER", message)
+            }
+        }
+    }
+    private fun publishLocation(point: Point) {
+        val lat = point.latitude()
+        val long = point.longitude()
+        val serverMessage = "ack,$long,$lat"
+        mqttHandler.publish("test/topic",serverMessage)
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            mqttHandler.disconnect()
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
     }
 
     private fun Int.dpToPx(): Int {
