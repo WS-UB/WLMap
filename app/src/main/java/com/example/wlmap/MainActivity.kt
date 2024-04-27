@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
         val container = RelativeLayout(this)
 
         val mapView = MapView(this)
-        mapView.mapboxMap.flyTo(
+        mapView.mapboxMap.setCamera(
             CameraOptions.Builder()
                 .center(Point.fromLngLat(LONGITUDE, LATITUDE))
                 .pitch(0.0)
@@ -393,9 +393,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun calculateCentroid(polygon: Polygon): Point {
-            Log.d("DEBUG",polygon.coordinates().toString())
-            Log.d("DEBUG2",polygon.coordinates().size.toString())
-            return  polygon.coordinates()[0][0]
+            var lon = 0.0
+            var lat = 0.0
+            val len = polygon.coordinates()[0].size
+            for (coordinate in polygon.coordinates()[0]){
+                lon+=coordinate.longitude()
+                lat+=coordinate.latitude()
+            }
+            return Point.fromLngLat(lon/len,lat/len)
 
         }
 
@@ -416,6 +421,7 @@ class MainActivity : AppCompatActivity() {
         var userQuery = ""
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+
             override fun onQueryTextSubmit(query: String): Boolean {
                 userQuery = query
                 // This method will be called when the user submits the query (e.g., by pressing Enter)
@@ -447,6 +453,7 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
 
+
                 mapView.mapboxMap.flyTo(
                     CameraOptions.Builder()
                         .center(Point.fromLngLat(LONGITUDE, LATITUDE))
@@ -455,6 +462,7 @@ class MainActivity : AppCompatActivity() {
                         .bearing(0.0)
                         .build()
                 )
+
                 val visibleBounds = mapView.mapboxMap.coordinateBoundsForCamera(CameraOptions.Builder()
                     .center(Point.fromLngLat(LONGITUDE, LATITUDE))
                     .pitch(0.0)
@@ -501,6 +509,7 @@ class MainActivity : AppCompatActivity() {
 
 
         mapView.mapboxMap.addOnMapClickListener { point ->
+            Log.d("POINT",point.toString())
             if (!isSearchViewFocused) {
                 // If the search view is not focused, collapse it
                 searchView.isIconified = true
