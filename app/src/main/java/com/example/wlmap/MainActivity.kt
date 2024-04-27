@@ -106,7 +106,7 @@ class MainActivity : AppCompatActivity() {
 
         // Start user LocationPuck plotting on and launching user NavigationRouting mapView
         userLocationPuck()
-        //userNavigationRouting()
+        userNavigationRouting()
 
         // Initialize mapView to Davis Hall and set parameters
         initMapView()
@@ -437,7 +437,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 mapView.mapboxMap.getStyle { style ->
                     val layer = style.getLayerAs<FillLayer>(sourceLayerId)
-                    val source = layer?.sourceId
                     // Update layer properties
                     layer?.fillOpacity(0.8)
                     val doorLayer = style.getLayerAs<SymbolLayer>(sourceLayerDoorId)
@@ -532,7 +531,6 @@ class MainActivity : AppCompatActivity() {
                     sourceLayerDoorId = FLOOR3_DOORS
                 }
                 val layer = style.getLayerAs<FillLayer>(sourceLayerId)
-                val source = layer?.sourceId
                 // Update layer properties
                 layer?.fillOpacity(0.8)
                 val doorLayer = style.getLayerAs<SymbolLayer>(sourceLayerDoorId)
@@ -854,22 +852,20 @@ class MainActivity : AppCompatActivity() {
         polylineAnnotationManager = annotationApi.createPolylineAnnotationManager()
 
 
-        // Define a list of geographic coordinates to be connected.
-        val points = listOf(
-            Point.fromLngLat( -78.78759,43.002665),
-            Point.fromLngLat( -78.78753812740018,43.00269736914555),
-            Point.fromLngLat( -78.78753812740018,43.002728514107844),
-            Point.fromLngLat( -78.78753957936134,43.002758621754225),
-            Point.fromLngLat( -78.78753855612797,43.00279588440392),
-            Point.fromLngLat( -78.78753904102501,43.00284741340417),
-            Point.fromLngLat( -78.78747266477298,43.00285070834681),
-            Point.fromLngLat( -78.78738743910438,43.00284966186862),
-            Point.fromLngLat( -78.78738237545627,43.00286521647894)
+        // List of walkable points of floor 1
+        val f1Walk = listOf(
+            Point.fromLngLat(-78.78751469317484, 43.00265668269077),
+            Point.fromLngLat(-78.7868938249454, 43.00265668269077),
+            Point.fromLngLat(-78.7868938249454,43.00285069822394),
+            Point.fromLngLat(-78.78751469317484,43.00285069822394),
+            Point.fromLngLat(-78.78751469317484, 43.00265668269077),
+            Point.fromLngLat(-78.78751469317484, 43.002701127103336),
+            Point.fromLngLat(-78.78756781748096, 43.002701127103336)
         )
 
         // Set options for the resulting line layer.
         val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-            .withPoints(points)
+            .withPoints(f1Walk)
             // Style the line that will be added to the map.
             .withLineColor("#0f53ff")
             .withLineWidth(6.3)
