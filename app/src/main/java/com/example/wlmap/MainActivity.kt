@@ -17,6 +17,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.RelativeLayout
 import android.widget.SearchView
 import android.widget.Spinner
@@ -78,9 +79,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var circleAnnotationManager: CircleAnnotationManager
     private lateinit var polylineAnnotationManager: PolylineAnnotationManager
     private lateinit var mapView: MapView
-
     private lateinit var buttonF1: Button
     private lateinit var buttonF3: Button
+    private lateinit var popupWindow: PopupWindow
 
     private var circleAnnotationId: CircleAnnotation? = null
     private var lastLocation: Pair<Double, Double>? = null
@@ -98,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
         // 2. Connection to UB VPN or UB network
-        initMQTTHandler()
+        //initMQTTHandler()
 
         // Create a RelativeLayout to hold the MapView
         val container = RelativeLayout(this)
@@ -106,7 +107,7 @@ class MainActivity : AppCompatActivity() {
 
         // Start user LocationPuck plotting on and launching user NavigationRouting mapView
         userLocationPuck()
-        userNavigationRouting()
+        //userNavigationRouting()
 
         // Initialize mapView to Davis Hall and set parameters
         initMapView()
@@ -114,6 +115,9 @@ class MainActivity : AppCompatActivity() {
         // Set ContentView to the RelativeLayout container
         container.addView(mapView)
         setContentView(container)
+
+        // Initialize navigation directions popup
+        initNavigationPopup()
 
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
@@ -156,7 +160,7 @@ class MainActivity : AppCompatActivity() {
                             symbolLayer?.textField(
                                 Expression.get("name"), // Existing text
                             )
-                            layerf3?.fillColor("#808080")
+                            layerf3?.fillColor("#7e7c77")
                             symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
                     }else if (layerNum == 1){
@@ -173,7 +177,7 @@ class MainActivity : AppCompatActivity() {
                             symbolLayer?.textField(
                                 Expression.get("name"), // Existing text
                             )
-                            layerf1?.fillColor("#808080")
+                            layerf1?.fillColor("#7e7c77")
                             symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
                     }
@@ -191,7 +195,7 @@ class MainActivity : AppCompatActivity() {
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
                                     Expression.literal("room"), Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
-                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                    Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
                             symbolLayer?.textAllowOverlap(true)
@@ -215,7 +219,7 @@ class MainActivity : AppCompatActivity() {
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
                                     Expression.literal("room"), Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
-                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                    Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
 //                            symbolLayer?.textField(Expression.concat(
@@ -242,7 +246,7 @@ class MainActivity : AppCompatActivity() {
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
                                     Expression.literal("bathroom"), Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
-                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                    Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
                             symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
@@ -262,7 +266,7 @@ class MainActivity : AppCompatActivity() {
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
                                     Expression.literal("bathroom"), Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
-                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                    Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
                             symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
@@ -284,7 +288,7 @@ class MainActivity : AppCompatActivity() {
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
                                     Expression.literal("stairwell"), Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
-                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                    Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
                             symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
@@ -303,7 +307,7 @@ class MainActivity : AppCompatActivity() {
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
                                     Expression.literal("stairwell"), Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
-                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                    Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
                             symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
@@ -324,7 +328,7 @@ class MainActivity : AppCompatActivity() {
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
                                     Expression.literal("elevator"), Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
-                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                    Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
                             symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
@@ -343,7 +347,7 @@ class MainActivity : AppCompatActivity() {
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
                                     Expression.literal("elevator"), Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
-                                    Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                                    Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
                             symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
@@ -448,7 +452,7 @@ class MainActivity : AppCompatActivity() {
                         Expression.match(
                             Expression.get("name"), // Attribute to match
                             Expression.literal(query), Expression.color(Color.parseColor("#39ff14")), // Color for "room" polygons
-                            Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                            Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                         )
                     )
                 }
@@ -508,7 +512,7 @@ class MainActivity : AppCompatActivity() {
 
         mapView.mapboxMap.addOnMapClickListener { point ->
 
-            publishLocation(point)
+            //publishLocation(point)
 
             if (!isSearchViewFocused) {
                 // If the search view is not focused, collapse it
@@ -541,8 +545,8 @@ class MainActivity : AppCompatActivity() {
                 layer?.fillColor(
                     Expression.match(
                         Expression.get("name"), // Attribute to match
-                        Expression.literal(userQuery), Expression.color(Color.parseColor("#808080")), // Color for "room" polygons
-                        Expression.color(Color.parseColor("#808080")) // Default color for other polygons
+                        Expression.literal(userQuery), Expression.color(Color.parseColor("#7e7c77")), // Color for "room" polygons
+                        Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                     )
                 )
             }
@@ -573,8 +577,13 @@ class MainActivity : AppCompatActivity() {
                                     restOfTheString = restOfTheString.substring(0, bracketIndex)
                                 }
                                 val finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
-                                Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
-                                // Iterate through each character in the rest of the string
+                                //Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
+
+                                // Directions navigation popup on room click
+                                val x = screenPoint.x.toInt()
+                                val y = screenPoint.y.toInt()
+
+                                popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
                         } else {
@@ -711,7 +720,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun initNavigationPopup() {
+        // Create the button programmatically with an icon next to the text
+        val button = Button(this).apply {
+            text = "Get Directions"
+            // Set the icon to the left of the text
+            setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_directions, 0)
+            setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
+            setOnClickListener {
+                Toast.makeText(this@MainActivity, "Navigating...", Toast.LENGTH_SHORT).show()
+                popupWindow.dismiss()
+            }
+        }
 
+        // Initialize the PopupWindow (assuming you have a PopupWindow instance)
+        popupWindow = PopupWindow(this).apply {
+            width = LinearLayout.LayoutParams.WRAP_CONTENT
+            height = LinearLayout.LayoutParams.WRAP_CONTENT
+            isFocusable = true
+            contentView = button
+            setBackgroundDrawable(null)
+        }
+    }
 
     private fun initRoomSelector(): Spinner {
         // Create a Spinner
@@ -751,7 +781,7 @@ class MainActivity : AppCompatActivity() {
 
         params.addRule(RelativeLayout.ALIGN_PARENT_TOP) // Align to the top
         params.addRule(RelativeLayout.ALIGN_PARENT_END) // Align to the end (right)
-        params.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+        params.setMargins(16.dpToPx(), 16.dpToPx(), 60.dpToPx(), 16.dpToPx())
 
         spinner.layoutParams = params
 
