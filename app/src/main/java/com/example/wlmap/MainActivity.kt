@@ -25,6 +25,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.common.location.AccuracyLevel
+import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
 import com.mapbox.common.location.Location
 import com.mapbox.common.location.LocationObserver
@@ -82,10 +83,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonF1: Button
     private lateinit var buttonF3: Button
     private lateinit var popupWindow: PopupWindow
+    private lateinit var userLastLocation: Point
 
     private var circleAnnotationId: CircleAnnotation? = null
     private var lastLocation: Pair<Double, Double>? = null
-    private var layerNum: Int = 0
+    private var floorSelected: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -107,7 +109,6 @@ class MainActivity : AppCompatActivity() {
 
         // Start user LocationPuck plotting on and launching user NavigationRouting mapView
         userLocationPuck()
-        //userNavigationRouting()
 
         // Initialize mapView to Davis Hall and set parameters
         initMapView()
@@ -137,11 +138,11 @@ class MainActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
-                if (layerNum == 0) {
+                if (floorSelected == 0) {
                     return
                 }
                 if (spinnerOptions[position] == "All") {
-                    if (layerNum == 3) {
+                    if (floorSelected == 3) {
                         mapView.mapboxMap.getStyle { style ->
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
@@ -163,7 +164,7 @@ class MainActivity : AppCompatActivity() {
                             layerf3?.fillColor("#7e7c77")
                             symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
-                    }else if (layerNum == 1){
+                    }else if (floorSelected == 1){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -182,7 +183,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 } else if (spinnerOptions[position] == "Room") {
-                    if (layerNum == 3) {
+                    if (floorSelected == 3) {
                         mapView.mapboxMap.getStyle { style ->
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
@@ -205,7 +206,7 @@ class MainActivity : AppCompatActivity() {
 //                            ))
                             symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
                         }
-                    }else if (layerNum == 1){
+                    }else if (floorSelected == 1){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -232,7 +233,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                 }else if(spinnerOptions[position] == "Bathroom"){
-                    if (layerNum == 3){
+                    if (floorSelected == 3){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
@@ -252,7 +253,7 @@ class MainActivity : AppCompatActivity() {
                             symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
 
                         }
-                    } else if (layerNum == 1) {
+                    } else if (floorSelected == 1) {
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -274,7 +275,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 } else if (spinnerOptions[position] == "Staircase") {
-                    if (layerNum == 3) {
+                    if (floorSelected == 3) {
                         mapView.mapboxMap.getStyle { style ->
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
@@ -293,7 +294,7 @@ class MainActivity : AppCompatActivity() {
                             )
                             symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
                         }
-                    } else if (layerNum == 1) {
+                    } else if (floorSelected == 1) {
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -314,7 +315,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 } else if (spinnerOptions[position] == "Elevator") {
-                    if (layerNum == 3) {
+                    if (floorSelected == 3) {
                         mapView.mapboxMap.getStyle { style ->
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
@@ -333,7 +334,7 @@ class MainActivity : AppCompatActivity() {
                             )
                             symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
                         }
-                    } else if (layerNum == 1) {
+                    } else if (floorSelected == 1) {
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -430,11 +431,11 @@ class MainActivity : AppCompatActivity() {
                 var sourceLayerId = ""
                 var sourceLabelLayerId = ""
                 var sourceLayerDoorId = ""
-                if (layerNum == 1) {
+                if (floorSelected == 1) {
                     sourceLayerId = FLOOR1_LAYOUT
                     sourceLabelLayerId = FLOOR1_LABELS
                     sourceLayerDoorId = FLOOR1_DOORS
-                }else if (layerNum == 3){
+                }else if (floorSelected == 3){
                     sourceLayerId = FLOOR3_LAYOUT
                     sourceLabelLayerId = FLOOR3_LABELS
                     sourceLayerDoorId = FLOOR3_DOORS
@@ -511,37 +512,45 @@ class MainActivity : AppCompatActivity() {
 
 
         mapView.mapboxMap.addOnMapClickListener { point ->
+            var sourceLayerId = ""
+            var sourceLabelLayerId = ""
+            var sourceLayerDoorId = ""
 
             //publishLocation(point)
+
 
             if (!isSearchViewFocused) {
                 // If the search view is not focused, collapse it
                 searchView.isIconified = true
             }
+
             // Hide the keyboard regardless of the focus state
             hideKeyboard(this, mapView)
 
+            // Reset userQuery room color from search bar
             mapView.mapboxMap.getStyle { style ->
-                var sourceLayerId = ""
-                var sourceLabelLayerId = ""
-                var sourceLayerDoorId = ""
-                if (layerNum == 1) {
+                if (floorSelected == 1) {
                     sourceLayerId = FLOOR1_LAYOUT
                     sourceLabelLayerId = FLOOR1_LABELS
                     sourceLayerDoorId = FLOOR1_DOORS
-                }else if (layerNum == 3) {
+                }else if (floorSelected == 3) {
                     sourceLayerId = FLOOR3_LAYOUT
                     sourceLabelLayerId = FLOOR3_LABELS
                     sourceLayerDoorId = FLOOR3_DOORS
                 }
+
                 val layer = style.getLayerAs<FillLayer>(sourceLayerId)
                 // Update layer properties
                 layer?.fillOpacity(0.8)
+
                 val doorLayer = style.getLayerAs<SymbolLayer>(sourceLayerDoorId)
                 doorLayer?.iconOpacity(1.0)
+
                 val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
                 symbolLayer?.textOpacity(1.0)
+
                 symbolLayer?.textAllowOverlap(true)
+
                 layer?.fillColor(
                     Expression.match(
                         Expression.get("name"), // Attribute to match
@@ -554,8 +563,7 @@ class MainActivity : AppCompatActivity() {
             // Convert the geographic coordinates to screen coordinates
             val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
             val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
-            val currentLayer = layerNum
-            var sourceLayerId = ""
+            val currentLayer = floorSelected
             if (currentLayer != 0){
                 if (currentLayer == 3){
                     sourceLayerId = FLOOR3_LAYOUT
@@ -577,7 +585,7 @@ class MainActivity : AppCompatActivity() {
                                     restOfTheString = restOfTheString.substring(0, bracketIndex)
                                 }
                                 val finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
-                                //Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
+                                Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
 
                                 // Directions navigation popup on room click
                                 val x = screenPoint.x.toInt()
@@ -587,6 +595,7 @@ class MainActivity : AppCompatActivity() {
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
                         } else {
+
                             /*
                             mapView.mapboxMap.flyTo(
                                 CameraOptions.Builder()
@@ -596,8 +605,8 @@ class MainActivity : AppCompatActivity() {
                                     .bearing(0.0)
                                     .build()
                             )
-
                              */
+
                         }
                     }
                 }
@@ -606,7 +615,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         buttonF1.setOnClickListener {
-            layerNum = 1
+            floorSelected = 1
             mapView.mapboxMap.getStyle { style ->
                 // Get an existing layer by referencing its
                 // unique layer ID (LAYER_ID)
@@ -626,7 +635,7 @@ class MainActivity : AppCompatActivity() {
                 // Update layer properties
                 layer?.fillOpacity(0.8)
                 val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
-                doorLayer?.iconOpacity(1.0)
+                doorLayer?.iconOpacity(0.8)
                 val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                 symbolLayer?.textOpacity(1.0)
                 symbolLayer?.textAllowOverlap(true)
@@ -664,7 +673,7 @@ class MainActivity : AppCompatActivity() {
 
 
         buttonF3.setOnClickListener {
-            layerNum = 3
+            floorSelected = 3
             mapView.mapboxMap.getStyle { style ->
                 // Get an existing layer by referencing its
                 // unique layer ID (LAYER_ID)
@@ -720,6 +729,56 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun userLocationPuck() { 
+        val annotationApi = mapView.annotations
+        val circleAnnotationManager = annotationApi.createCircleAnnotationManager()
+
+        val locationService : LocationService = LocationServiceFactory.getOrCreate()
+        val locationProvider: DeviceLocationProvider?
+
+        val request = LocationProviderRequest.Builder()
+            .interval(IntervalSettings.Builder().interval(0L).minimumInterval(0L).maximumInterval(0L).build())
+            .displacement(2F)
+            .accuracy(AccuracyLevel.HIGHEST)
+            .build();
+
+        val result = locationService.getDeviceLocationProvider(request)
+        locationProvider = result.value
+
+        val locationObserver = LocationObserver { locations ->
+            Log.e(ContentValues.TAG, "Location update received: $locations.")
+            // Assuming you want to plot the first location received
+            val location = updateLocation(locations[0].latitude,locations[0].longitude)
+            val point = Point.fromLngLat(location.second,location.first)
+            Log.e(ContentValues.TAG, "Location update received: $location")
+
+            // Set options for the resulting circle layer.
+            val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+
+                // Define a geographic coordinate.
+                .withPoint(point)
+
+                // Style the circle that will be added to the map.
+                .withCircleRadius(8.0)
+                .withCircleColor("#4a90e2")
+                .withCircleStrokeWidth(3.5)
+                .withCircleStrokeColor("#FAF9F6")
+
+            if (circleAnnotationManager.annotations.contains(circleAnnotationId)) {
+                // Delete the previous LocationPuck annotation
+                circleAnnotationManager.delete(circleAnnotationId!!)
+            }
+
+            // Store last location for nav routing algorithm
+            userLastLocation = point
+
+            // Create and add the new circle annotation to the map
+            circleAnnotationId = circleAnnotationManager.create(circleAnnotationOptions)
+        }
+
+        locationProvider?.addLocationObserver(locationObserver)
+    }
+
     private fun initNavigationPopup() {
         // Create the button programmatically with an icon next to the text
         val button = Button(this).apply {
@@ -729,6 +788,7 @@ class MainActivity : AppCompatActivity() {
             setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
             setOnClickListener {
                 Toast.makeText(this@MainActivity, "Navigating...", Toast.LENGTH_SHORT).show()
+                userNavigationRouting()
                 popupWindow.dismiss()
             }
         }
@@ -882,17 +942,67 @@ class MainActivity : AppCompatActivity() {
         polylineAnnotationManager = annotationApi.createPolylineAnnotationManager()
 
 
+        /*
+        //
+        Point.fromLngLat(-78.7868938249454,43.00285069822394),
+        Point.fromLngLat(-78.78751469317484,43.00285069822394),
+        Point.fromLngLat(-78.78751469317484, 43.00265668269077),
+        Point.fromLngLat(-78.78751469317484, 43.002701127103336),
+        Point.fromLngLat(-78.78756781748096, 43.002701127103336)
+
+         */
+
+
+
         // List of walkable points of floor 1
         val f1Walk = listOf(
+            // HALL C117
             Point.fromLngLat(-78.78751469317484, 43.00265668269077),
-            Point.fromLngLat(-78.7868938249454, 43.00265668269077),
-            Point.fromLngLat(-78.7868938249454,43.00285069822394),
-            Point.fromLngLat(-78.78751469317484,43.00285069822394),
-            Point.fromLngLat(-78.78751469317484, 43.00265668269077),
-            Point.fromLngLat(-78.78751469317484, 43.002701127103336),
-            Point.fromLngLat(-78.78756781748096, 43.002701127103336)
+            Point.fromLngLat(-78.78742202301328, 43.00265668269077),
+            Point.fromLngLat(-78.78734166862753, 43.00265668269077),
+            Point.fromLngLat(-78.78724505207666, 43.00265668269077),
+            Point.fromLngLat(-78.78715369602253,43.00265668269077),
+            Point.fromLngLat(-78.78705246522863, 43.00265668269077),
+            Point.fromLngLat(-78.78692752615112, 43.00265668269077),
+
+            // HALL C116
+            Point.fromLngLat(-78.78689428375111, 43.00265668269077),
+            Point.fromLngLat(-78.78689428375111, 43.00273843797882),
+            Point.fromLngLat(-78.78689428375111, 43.002830102156025),
+            Point.fromLngLat(-78.78689428375111, 43.00285059380832),
+
+            //HALL C115 LEFT
+            Point.fromLngLat(-78.78695554257372, 43.00285059380832),
+            Point.fromLngLat(-78.78704131765394, 43.00285059380832),
+            Point.fromLngLat(-78.78708934724371, 43.00285059380832),
+            Point.fromLngLat(-78.78719371883047, 43.00285059380832),
+            Point.fromLngLat(-78.78724589506906, 43.00285059380832),
+            Point.fromLngLat(-78.78734442483108, 43.00285059380832),
+            Point.fromLngLat(-78.78742256376356, 43.00285059380832),
+            Point.fromLngLat(-78.78746825354492, 43.00285059380832),
+
+            //HALL C115 RIGHT // BATHROOM NODE Point.fromLngLat(-78.78766072255355, 43.00285059380832),
+            Point.fromLngLat(-78.78751469317484, 43.00285059380832),
+            Point.fromLngLat(-78.78765887996539, 43.00285059380832),
+            Point.fromLngLat(-78.78775558522321, 43.00285059380832),
+
+            //MAIN HALL 101
+            //Point.fromLngLat(-78.78751469317484, 43.00265668269077),
+            Point.fromLngLat(-78.78751469317484, 43.002776797223675),
+            Point.fromLngLat(-78.78756988740314, 43.002776797223675),
+            Point.fromLngLat(-78.78751469317484, 43.00270086610047),
+            Point.fromLngLat(-78.78755328875651,43.00270086610047),
+
+
+            //SIDE ENTRANCE BY 101 -78.78755927097362
+            Point.fromLngLat(-78.78755328875651, 43.002534795993796),
+            Point.fromLngLat(-78.78755328875651, 43.00242066370484),
+            Point.fromLngLat(-78.78766689749101, 43.00242066370484),
+            Point.fromLngLat(-78.78773364869417, 43.00242066370484)
         )
 
+
+        /*
         // Set options for the resulting line layer.
         val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
             .withPoints(f1Walk)
@@ -900,55 +1010,56 @@ class MainActivity : AppCompatActivity() {
             .withLineColor("#0f53ff")
             .withLineWidth(6.3)
             .withLineJoin(LineJoin.ROUND)
+            .withLineSortKey(0.0)
 
         // Add the resulting line to the map.
         polylineAnnotationManager.create(polylineAnnotationOptions)
-    }
+        */
 
-    private fun userLocationPuck() {
-        val annotationApi = mapView.annotations
-        circleAnnotationManager = annotationApi.createCircleAnnotationManager()
-        val locationService : LocationService = LocationServiceFactory.getOrCreate()
-
-        val request = LocationProviderRequest.Builder()
-            .interval(IntervalSettings.Builder().interval(0L).minimumInterval(0L).maximumInterval(0L).build())
-            .displacement(0F)
-            .accuracy(AccuracyLevel.HIGHEST)
-            .build()
-
-        val result = locationService.getDeviceLocationProvider(request)
-        val locationProvider = result.value
-
-        val locationObserver = object: LocationObserver {
-            override fun onLocationUpdateReceived(locations: MutableList<Location>) {
-                Log.e(ContentValues.TAG, "Location update received: $locations.")
-
-                // Assuming you want to plot the first location received
-                val location = updateLocation(locations[0].latitude,locations[0].longitude)
-                val point = Point.fromLngLat(location.second,location.first)
-                Log.e(ContentValues.TAG, "Location update received: $location")
-
-                // Set options for the resulting circle layer.
-                val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
-
-                    // Define a geographic coordinate.
-                    .withPoint(point)
-
-                    // Style the circle that will be added to the map.
-                    .withCircleRadius(8.0)
-                    .withCircleColor("#4a90e2")
-                    .withCircleStrokeWidth(3.5)
-                    .withCircleStrokeColor("#FAF9F6")
-
-                // Removing the previous location with the new update
-                circleAnnotationId?.let {
-                    circleAnnotationManager.delete(it)
-                }
-
-                // Create and add the new circle annotation to the map
-                circleAnnotationId = circleAnnotationManager.create(circleAnnotationOptions)
-            }
+        mapView.mapboxMap.getStyle { style ->
+            // Get an existing layer by referencing its
+            // unique layer ID (LAYER_ID)
+            val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+            // Update layer properties
+            layer?.fillOpacity(1.0)
+            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+            doorLayer?.iconOpacity(0.0)
+            // Add symbol layer for floor 3 labels
+            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
+            symbolLayer?.textOpacity(1.0)
         }
+
+        // Circle at each point in 'f1Walk'
+        for (point in f1Walk) {
+            // Create a circle marker for each point
+            val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+                .withPoint(point)
+                .withCircleColor("#000000") // Match the color with the polyline
+                .withCircleRadius(5.0) // Set the radius of the circle
+                .withCircleOpacity(1.0) // Set the opacity of the circle
+                .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+
+            // Add the circle marker to the map
+            circleAnnotationManager.create(circleMarkerOptions)
+        }
+
+
+        /*
+        val closestPoint = Graph.findClosestPoint(f1Walk,userLastLocation)
+
+
+        val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+            .withPoint(closestPoint)
+            .withCircleColor("#ff0000") // Match the color with the polyline
+            .withCircleRadius(5.0) // Set the radius of the circle
+            .withCircleOpacity(1.0) // Set the opacity of the circle
+            .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+
+
+
+        // Add the circle marker to the map
+        circleAnnotationManager.create(circleMarkerOptions)
+         */
 
     }
 
