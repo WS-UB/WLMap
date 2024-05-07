@@ -13,7 +13,7 @@ import kotlin.random.Random
 
 class Graph {
     lateinit var walkPoints : List<Point>
-    private val nodes = mutableMapOf<String, NavPoint>()
+    val nodes = mutableMapOf<String, NavPoint>()
     private val edges = mutableMapOf<String, Double>()
 
     fun addEdge(point1: Point, point2: Point) {
@@ -109,6 +109,7 @@ class Graph {
                 path.reverse()
                 path.add(door)
                 Log.e(ContentValues.TAG, "${path.contains(door)}")
+                Log.e(ContentValues.TAG, "${nodes[doorId]?.neighbors}")
                 return path
             }
 

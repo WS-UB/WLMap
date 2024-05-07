@@ -87,7 +87,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mqttHandler: MqttHandler
     private lateinit var locationPermissionHelper: LocationPermissionHelper
     private lateinit var annotationAPI: AnnotationPlugin
-    private lateinit var circleAnnotationManager: CircleAnnotationManager
+    private lateinit var userAnnotationManager: CircleAnnotationManager
+    private lateinit var doorAnnotationManager: CircleAnnotationManager
     private lateinit var polylineAnnotationManager: PolylineAnnotationManager
     private lateinit var mapView: MapView
     private lateinit var buttonF1: Button
@@ -100,6 +101,7 @@ class MainActivity : AppCompatActivity() {
     private var circleAnnotationId: CircleAnnotation? = null
     private var prevRoute: PolylineAnnotation? = null
     private var routeDisplayed: Boolean = false
+    private var prevDoor: Boolean = false
     private var lastLocation: Pair<Double, Double>? = null
     private var floorSelected: Int = 0
 
@@ -115,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
         // 2. Connection to UB VPN or UB network
-        //initMQTTHandler()
+        initMQTTHandler()
 
         // Create a RelativeLayout to hold the MapView
         val container = RelativeLayout(this)
@@ -131,8 +133,7 @@ class MainActivity : AppCompatActivity() {
         container.addView(mapView)
         setContentView(container)
 
-        annotationAPI = mapView.annotations
-        initPolyManager()
+        initManagers()
 
         // Initialize navigation directions popup
         initNavigationPopup()
@@ -538,7 +539,7 @@ class MainActivity : AppCompatActivity() {
             var sourceLabelLayerId = ""
             var sourceLayerDoorId = ""
 
-            //publishLocation(point)
+            publishLocation(point)
 
 
             if (!isSearchViewFocused) {
@@ -646,6 +647,11 @@ class MainActivity : AppCompatActivity() {
                 routeDisplayed = false
             }
 
+            if (prevDoor) {
+                doorAnnotationManager.deleteAll()
+                prevDoor = false
+            }
+
             mapView.mapboxMap.getStyle { style ->
                 // Get an existing layer by referencing its
                 // unique layer ID (LAYER_ID)
@@ -710,6 +716,11 @@ class MainActivity : AppCompatActivity() {
                 routeDisplayed = false
             }
 
+            if (prevDoor) {
+                doorAnnotationManager.deleteAll()
+                prevDoor = false
+            }
+
             mapView.mapboxMap.getStyle { style ->
                 // Get an existing layer by referencing its
                 // unique layer ID (LAYER_ID)
@@ -765,13 +776,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initPolyManager() {
+    private fun initManagers() {
+        annotationAPI = mapView.annotations
         polylineAnnotationManager = annotationAPI.createPolylineAnnotationManager()
+        userAnnotationManager = annotationAPI.createCircleAnnotationManager()
+        doorAnnotationManager = annotationAPI.createCircleAnnotationManager()
     }
 
-    private fun userLocationPuck() { 
-        val annotationApi = mapView.annotations
-        val circleAnnotationManager = annotationApi.createCircleAnnotationManager()
+    private fun userLocationPuck() {
 
         val locationService : LocationService = LocationServiceFactory.getOrCreate()
         val locationProvider: DeviceLocationProvider?
@@ -796,24 +808,25 @@ class MainActivity : AppCompatActivity() {
             val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
 
                 // Define a geographic coordinate.
-                .withPoint(Point.fromLngLat(-78.78755328875651, 43.002534795993796))
+                .withPoint(point)
 
                 // Style the circle that will be added to the map.
                 .withCircleRadius(8.0)
                 .withCircleColor("#4a90e2")
                 .withCircleStrokeWidth(3.5)
                 .withCircleStrokeColor("#FAF9F6")
+                .withCircleSortKey(1.0)
 
-            if (circleAnnotationManager.annotations.contains(circleAnnotationId)) {
+            if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
                 // Delete the previous LocationPuck annotation
-                circleAnnotationManager.delete(circleAnnotationId!!)
+                userAnnotationManager.delete(circleAnnotationId!!)
             }
 
             // Store last location for nav routing algorithm
             userLastLocation = point
 
             // Create and add the new circle annotation to the map
-            circleAnnotationId = circleAnnotationManager.create(circleAnnotationOptions)
+            circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
         }
 
         locationProvider?.addLocationObserver(locationObserver)
@@ -827,7 +840,6 @@ class MainActivity : AppCompatActivity() {
             setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_directions, 0)
             setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
             setOnClickListener {
-                Toast.makeText(this@MainActivity, "Navigating...", Toast.LENGTH_SHORT).show()
                 userNavigationRouting()
                 popupWindow.dismiss()
             }
@@ -977,100 +989,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun userNavigationRouting() {
-        /*
-        //
-        Point.fromLngLat(-78.7868938249454,43.00285069822394),
-        Point.fromLngLat(-78.78751469317484,43.00285069822394),
-        Point.fromLngLat(-78.78751469317484, 43.00265668269077),
-        Point.fromLngLat(-78.78751469317484, 43.002701127103336),
-        Point.fromLngLat(-78.78756781748096, 43.002701127103336)
-
-         */
-
-        // List of walkable points of floor 1
-        val f1Walk = listOf(
-            // HALL C117
-            Point.fromLngLat(-78.78751469317484, 43.00265668269077),
-            Point.fromLngLat(-78.78742202301328, 43.00265668269077),
-            Point.fromLngLat(-78.78734166862753, 43.00265668269077),
-            Point.fromLngLat(-78.78724505207666, 43.00265668269077),
-            Point.fromLngLat(-78.78715369602253,43.00265668269077),
-            Point.fromLngLat(-78.78705246522863, 43.00265668269077),
-            Point.fromLngLat(-78.78692752615112, 43.00265668269077),
-
-            // HALL C116
-            Point.fromLngLat(-78.78689428375111, 43.00265668269077),
-            Point.fromLngLat(-78.78689428375111, 43.00273843797882),
-            Point.fromLngLat(-78.78689428375111, 43.002830102156025),
-            Point.fromLngLat(-78.78689428375111, 43.00285059380832),
-
-            //HALL C115 LEFT
-            Point.fromLngLat(-78.78695554257372, 43.00285059380832),
-            Point.fromLngLat(-78.78704131765394, 43.00285059380832),
-            Point.fromLngLat(-78.78708934724371, 43.00285059380832),
-            Point.fromLngLat(-78.78719371883047, 43.00285059380832),
-            Point.fromLngLat(-78.78724589506906, 43.00285059380832),
-            Point.fromLngLat(-78.78734442483108, 43.00285059380832),
-            Point.fromLngLat(-78.78742256376356, 43.00285059380832),
-            Point.fromLngLat(-78.78746825354492, 43.00285059380832),
-
-            //HALL C115 RIGHT // BATHROOM NODE Point.fromLngLat(-78.78766072255355, 43.00285059380832),
-            Point.fromLngLat(-78.78751469317484, 43.00285059380832),
-            Point.fromLngLat(-78.78765887996539, 43.00285059380832),
-            Point.fromLngLat(-78.78775558522321, 43.00285059380832),
-
-            //MAIN HALL 101
-            //Point.fromLngLat(-78.78751469317484, 43.00265668269077),
-            Point.fromLngLat(-78.78751469317484, 43.002776797223675),
-            Point.fromLngLat(-78.78756988740314, 43.002776797223675),
-            Point.fromLngLat(-78.78751469317484, 43.00270086610047),
-            Point.fromLngLat(-78.78755328875651,43.00270086610047),
-
-
-            //SIDE ENTRANCE BY 101 -78.78755927097362
-            Point.fromLngLat(-78.78755328875651, 43.002534795993796),
-            Point.fromLngLat(-78.78755328875651, 43.00242066370484),
-            Point.fromLngLat(-78.78766689749101, 43.00242066370484),
-            Point.fromLngLat(-78.78773364869417, 43.00242066370484)
-        )
-
-        val firstCLoop = listOf(
-            // HALL C117
-            Point.fromLngLat(-78.78751469317484, 43.00265668269077),
-            Point.fromLngLat(-78.78742202301328, 43.00265668269077),
-            Point.fromLngLat(-78.78734166862753, 43.00265668269077),
-            Point.fromLngLat(-78.78724505207666, 43.00265668269077),
-            Point.fromLngLat(-78.78715369602253,43.00265668269077),
-            Point.fromLngLat(-78.78705246522863, 43.00265668269077),
-            Point.fromLngLat(-78.78692752615112, 43.00265668269077),
-
-            // HALL C116
-            Point.fromLngLat(-78.78689428375111, 43.00265668269077),
-            Point.fromLngLat(-78.78689428375111, 43.00273843797882),
-            Point.fromLngLat(-78.78689428375111, 43.002830102156025),
-            Point.fromLngLat(-78.78689428375111, 43.00285059380832),
-
-            //HALL C115 LEFT
-            Point.fromLngLat(-78.78695554257372, 43.00285059380832),
-            Point.fromLngLat(-78.78704131765394, 43.00285059380832),
-            Point.fromLngLat(-78.78708934724371, 43.00285059380832),
-            Point.fromLngLat(-78.78719371883047, 43.00285059380832),
-            Point.fromLngLat(-78.78724589506906, 43.00285059380832),
-            Point.fromLngLat(-78.78734442483108, 43.00285059380832),
-            Point.fromLngLat(-78.78742256376356, 43.00285059380832),
-            Point.fromLngLat(-78.78746825354492, 43.00285059380832),
-
-            //HALL C102
-            Point.fromLngLat(-78.78751469317484, 43.00285059380832),
-            Point.fromLngLat(-78.78751469317484, 43.002776797223675),
-            Point.fromLngLat(-78.78751469317484, 43.00270086610047),
-            Point.fromLngLat(-78.78751469317484, 43.00265668269077),
-        )
-
         val navGraph = Graph()
-        navGraph.walkPoints = firstCLoop
 
         // HALL C117
+        navGraph.addEdge(Point.fromLngLat(-78.7875593129828, 43.00265668269077),Point.fromLngLat(-78.78751469317484, 43.00265668269077))
         navGraph.addEdge(Point.fromLngLat(-78.78751469317484, 43.00265668269077),Point.fromLngLat(-78.78742202301328, 43.00265668269077))
         navGraph.addEdge(Point.fromLngLat(-78.78742202301328, 43.00265668269077),Point.fromLngLat(-78.78734166862753, 43.00265668269077))
         navGraph.addEdge(Point.fromLngLat(-78.78734166862753, 43.00265668269077),Point.fromLngLat(-78.78724505207666, 43.00265668269077))
@@ -1090,19 +1012,93 @@ class MainActivity : AppCompatActivity() {
         navGraph.addEdge(Point.fromLngLat(-78.78704131765394, 43.00285059380832),Point.fromLngLat(-78.78708934724371, 43.00285059380832))
         navGraph.addEdge(Point.fromLngLat(-78.78708934724371, 43.00285059380832),Point.fromLngLat(-78.78719371883047, 43.00285059380832))
         navGraph.addEdge(Point.fromLngLat(-78.78719371883047, 43.00285059380832),Point.fromLngLat(-78.78724589506906, 43.00285059380832))
-        navGraph.addEdge(Point.fromLngLat(-78.78724589506906, 43.00285059380832),Point.fromLngLat(-78.78734442483108, 43.00285059380832))
-        navGraph.addEdge(Point.fromLngLat(-78.78734442483108, 43.00285059380832),Point.fromLngLat(-78.78742256376356, 43.00285059380832))
+        navGraph.addEdge(Point.fromLngLat(-78.78724589506906, 43.00285059380832),Point.fromLngLat(-78.78734049888922, 43.00285059380832))
+        navGraph.addEdge(Point.fromLngLat(-78.78734049888922, 43.00285059380832),Point.fromLngLat(-78.78742256376356, 43.00285059380832))
         navGraph.addEdge(Point.fromLngLat(-78.78742256376356, 43.00285059380832),Point.fromLngLat(-78.78746825354492, 43.00285059380832))
         navGraph.addEdge(Point.fromLngLat(-78.78746825354492, 43.00285059380832),Point.fromLngLat(-78.78751469317484, 43.00285059380832))
 
+        // HALL C115 LEFT
+        navGraph.addEdge(Point.fromLngLat(-78.78751469317484, 43.00285059380832), Point.fromLngLat(-78.78765887996539, 43.00285059380832))
+        navGraph.addEdge(Point.fromLngLat(-78.78765887996539, 43.00285059380832),Point.fromLngLat(-78.78765887996539, 43.00283062635404))
+        navGraph.addEdge(Point.fromLngLat(-78.78765887996539, 43.00285059380832),Point.fromLngLat(-78.78774185818665, 43.00285059380832))
+        navGraph.addEdge(Point.fromLngLat(-78.78774185818665, 43.00285059380832),Point.fromLngLat(-78.78774185818665, 43.0028261742014))
+        navGraph.addEdge(Point.fromLngLat(-78.78774185818665, 43.0028261742014),Point.fromLngLat(-78.78774185818665, 43.002802139447624))
+        navGraph.addEdge(Point.fromLngLat(-78.78774185818665, 43.002802139447624),Point.fromLngLat(-78.78774185818665, 43.00277723594624))
+        navGraph.addEdge(Point.fromLngLat(-78.78774185818665, 43.00277723594624),Point.fromLngLat(-78.78774185818665, 43.0027514136836))
+        navGraph.addEdge(Point.fromLngLat(-78.78774185818665, 43.0027514136836),Point.fromLngLat(-78.78774185818665, 43.00272948399882))
+
         //HALL C102 MAIN
         navGraph.addEdge(Point.fromLngLat(-78.78751469317484, 43.00285059380832),Point.fromLngLat(-78.78751469317484, 43.002776797223675))
+        navGraph.addEdge(Point.fromLngLat(-78.78751469317484, 43.002776797223675),Point.fromLngLat(-78.78758096654084, 43.002776797223675))
         navGraph.addEdge(Point.fromLngLat(-78.78751469317484, 43.002776797223675),Point.fromLngLat(-78.78751469317484, 43.00270086610047))
         navGraph.addEdge(Point.fromLngLat(-78.78751469317484, 43.00270086610047),Point.fromLngLat(-78.78751469317484, 43.00265668269077))
+        navGraph.addEdge(Point.fromLngLat(-78.78751469317484, 43.00270086610047),Point.fromLngLat(-78.7875593129828, 43.00265668269077))
 
+        // HALL S103
+        navGraph.addEdge(Point.fromLngLat(-78.78751469317484, 43.00270086610047),Point.fromLngLat(-78.78755275476179, 43.00270086610047))
+        navGraph.addEdge(Point.fromLngLat(-78.78755275476179, 43.00270086610047), Point.fromLngLat(-78.7875593129828, 43.00265668269077))
+        navGraph.addEdge(Point.fromLngLat(-78.78755275476179, 43.00253315749791),Point.fromLngLat(-78.7875593129828, 43.00265668269077))
+        navGraph.addEdge(Point.fromLngLat(-78.78755275476179, 43.00270086610047),Point.fromLngLat(-78.78755275476179, 43.00253315749791))
+        navGraph.addEdge(Point.fromLngLat(-78.78755275476179, 43.00253315749791),Point.fromLngLat(-78.78755275476179, 43.002417555891725))
+        navGraph.addEdge(Point.fromLngLat(-78.78755275476179, 43.002417555891725),Point.fromLngLat(-78.78766632742568, 43.002417555891725))
+        navGraph.addEdge(Point.fromLngLat(-78.78766632742568, 43.002417555891725),Point.fromLngLat(-78.78773787669357, 43.002417555891725))
 
-        val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,testUserLocation)
-        navGraph.addEdge(nearestUserPoint,testUserLocation)
+        // PROF RESEARCH ROOMS
+        navGraph.addEdge(Point.fromLngLat(-78.78734049888922, 43.00285059380832),Point.fromLngLat(-78.78734108487438, 43.002889430792976))
+        navGraph.addEdge(Point.fromLngLat(-78.78734108487438, 43.002889430792976),Point.fromLngLat(-78.78734108487438, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78734108487438, 43.002914153255716),Point.fromLngLat(-78.78736088745488, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78736088745488, 43.002914153255716),Point.fromLngLat(-78.78737682871366, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78736088745488, 43.002914153255716),Point.fromLngLat(-78.78739305144838, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78734108487438, 43.002914153255716),Point.fromLngLat(-78.78729926002813, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78729926002813, 43.002914153255716),Point.fromLngLat(-78.78728315802225, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78728315802225, 43.002914153255716),Point.fromLngLat(-78.78722184057364, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78722184057364, 43.002914153255716),Point.fromLngLat(-78.78714338536244, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78714338536244, 43.002914153255716),Point.fromLngLat(-78.78712877832045, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78712877832045, 43.002914153255716),Point.fromLngLat(-78.78706705691697, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78706705691697, 43.002914153255716),Point.fromLngLat(-78.78704951220875, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78704951220875, 43.002914153255716),Point.fromLngLat(-78.78698929803357, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78698929803357, 43.002914153255716),Point.fromLngLat(-78.78697330315416, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78697330315416, 43.002914153255716),Point.fromLngLat(-78.78695331355547, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78695331355547, 43.002914153255716),Point.fromLngLat(-78.78691174213813, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78691174213813, 43.002914153255716),Point.fromLngLat(-78.78689547894501, 43.002914153255716))
+        navGraph.addEdge(Point.fromLngLat(-78.78689547894501, 43.002914153255716),Point.fromLngLat(-78.78683371458419, 43.002914153255716))
+
+//        val test = listOf(
+//            Point.fromLngLat(-78.78734108487438, 43.002914153255716)
+//        )
+//
+//
+//        circleAnnotationManager = annotationAPI.createCircleAnnotationManager()
+//        for (point in test) {
+//            // Create a circle marker for each point
+//            val circleMarkerOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+//                .withPoint(point)
+//                .withCircleColor("#000000") // Match the color with the polyline
+//                .withCircleRadius(5.0) // Set the radius of the circle
+//                .withCircleOpacity(1.0) // Set the opacity of the circle
+//                .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+//
+//            // Add the circle marker to the map
+//            circleAnnotationManager.create(circleMarkerOptions)
+//        }
+
+        navGraph.walkPoints = grabWalk(navGraph)
+
+        mapView.mapboxMap.getStyle { style ->
+            // Get an existing layer by referencing its
+            // unique layer ID (LAYER_ID)
+            val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+            // Update layer properties
+            layer?.fillOpacity(1.0)
+            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+            doorLayer?.iconOpacity(0.0)
+            // Add symbol layer for floor 3 labels
+            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
+            symbolLayer?.textOpacity(1.0)
+        }
+
+        val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
+        navGraph.addEdge(nearestUserPoint,userLastLocation)
 
         val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
         navGraph.addEdge(nearestDoorPoint,doorSelected!!)
@@ -1116,7 +1112,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-            .withPoints(navGraph.calcRoute(testUserLocation, doorSelected!!))
+            .withPoints(navGraph.calcRoute(userLastLocation, doorSelected!!))
             // Style the line that will be added to the map.
             .withLineColor("#0f53ff")
             .withLineWidth(6.3)
@@ -1128,6 +1124,17 @@ class MainActivity : AppCompatActivity() {
         routeDisplayed = true
 
     }
+
+    private fun grabWalk(graph: Graph): List<Point> {
+        val walk = mutableListOf<Point>()
+
+        for (node in graph.nodes) {
+            walk.add(node.value.nodePoint)
+        }
+
+        return walk
+    }
+
     private fun haversine(userLocation: Point, walkPoint: Point): Double {
         // Convert decimal degrees to radians
         val lon1Rad = Math.toRadians(userLocation.longitude())
@@ -1212,7 +1219,6 @@ class MainActivity : AppCompatActivity() {
                     if (f != null && f.size > 0) {
                         //Log.e(ContentValues.TAG, "${f}")
                         var minDistance = Double.MAX_VALUE
-                        lateinit var poo: String
                         for (feature in f) {
                             val door = feature.queriedFeature.feature.geometry() as Point
                             var roomsConnected =
@@ -1224,17 +1230,30 @@ class MainActivity : AppCompatActivity() {
                             }
 
                             if (rooms.contains(room) && startsWithC) {
-                                //Log.e(ContentValues.TAG,"${roomsConnected}")
+                                Log.e(ContentValues.TAG, "DOOR FOUND")
                                 val curDistance = haversine(door, point)
                                 if (curDistance < minDistance) {
                                     //Log.e(ContentValues.TAG, "REASSIGNED AT: $curDistance")
                                     minDistance = curDistance
                                     doorSelected = door
-                                    poo = roomsConnected
+
+                                    if (prevDoor) {
+                                        doorAnnotationManager.deleteAll()
+                                    }
+                                        // Create a circle marker for each point
+                                        val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+                                            .withPoint(door)
+                                            .withCircleColor("#ffcf40") // Match the color with the polyline
+                                            .withCircleRadius(7.0) // Set the radius of the circle
+                                            .withCircleOpacity(1.0) // Set the opacity of the circle
+                                            .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+
+                                        // Add the circle marker to the map
+                                        doorAnnotationManager.create(circleMarkerOptions)
+                                        prevDoor = true
                                 }
                             }
                         }
-                        Log.e(ContentValues.TAG,"FINAL DOOR SELECTED: ${poo}")
                     }
                 }
             }
