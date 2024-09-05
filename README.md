@@ -1,5 +1,5 @@
 # WLMap
-
+This is a navigational android app used to naviagate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
 User Guide: Contains necessary details and information about the project and tools required to install.
 
 The directory, app/src/main, contains the following files:
@@ -33,7 +33,7 @@ The directory, app/src/main, contains the following files:
 1. Download and install [Android Studio](https://developer.android.com/studio)
    - For Mac users: Download the appropriate installer based on your chipset (Intel Chip or Apple Chip).
    - Follow installer instructions during install.
-
+   - This app is compatible with the pixel 7a API 35
 
    
 
