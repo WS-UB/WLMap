@@ -14,6 +14,7 @@ The directory, app/src/main, contains the following files:
    - MainActivity.kt
    - MqttHandler.kt
    - NavPoint.kt
+      - A class constructor that designs navigation points consists of three variables: ID (String), nodePoint (Object named Point), and neighbors (Set of strings) 
 3. res
    - drawable
    - layout
