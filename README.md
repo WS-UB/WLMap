@@ -32,8 +32,17 @@ The directory, app/src/main, contains the following files:
 
 1. Download and install [Android Studio](https://developer.android.com/studio)
    - For Mac users: Download the appropriate installer based on your chipset (Intel Chip or Apple Chip).
-   - Follow installer instructions during install.
+   - Follow installer instructions during installation.
    - This app is compatible with the pixel 7a API 35
+
+2. Clone the appropriate repository
+
+3. Allow Gradle to install and update the AGP (Android Gradle Plugin) if prompted
+   - Update the AGP preferably to version 8.6
+
+4. Select "Device Manager" on the right-side app bar and install the device emulator
+   - Select the Pixel 7a (API 35)
+
 
    
 
