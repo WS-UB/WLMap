@@ -35,15 +35,24 @@ The directory, app/src/main, contains the following files:
 1. Download and install [Android Studio](https://developer.android.com/studio)
    - For Mac users: Download the appropriate installer based on your chipset (Intel Chip or Apple Chip).
    - Follow installer instructions during installation.
-   - This app is compatible with the pixel 7a API 35
+   - This app is compatible with the pixel 7a API 35.
 
-2. Clone the appropriate repository
+2. Clone the appropriate repository.
 
-3. Allow Gradle to install and update the AGP (Android Gradle Plugin) if prompted
-   - Update the AGP preferably to version 8.6
+3. Allow Gradle to install and update the AGP (Android Gradle Plugin) to version 8.6 if prompted
+   - If you are not prompted to update the AGP, follow these instructions:
+     - Select the "Tools" drop-down menu on the top of the IDE.
+     - Select "AGP Upgrade Assistant."
+     - Select version 8.6.
+     - Select "Run selected steps."
+     - After the update is complete, select "Refresh."
 
-4. Select "Device Manager" on the right-side app bar and install the device emulator
-   - Select the Pixel 7a (API 35)
+4. Select "Device Manager" on the right-side app bar and install the device emulator.
+   - If there are any other created devices, end their processes and remove them.
+   - Click the "+" to and select "Create Virtual Device."
+   - Select the "Phone" category and select the Pixel 7a.
+   - Press "Finish."
+   - After the device is installed, select the "play" button next to the installed device to begin running it.
 
 
    
