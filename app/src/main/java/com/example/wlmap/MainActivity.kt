@@ -1,5 +1,4 @@
 package com.example.wlmap
-
 import LocationPermissionHelper
 import android.R
 import android.content.ContentValues
@@ -68,20 +67,20 @@ import kotlin.math.sqrt
 
 
 class MainActivity : AppCompatActivity() {
-    private val serverUri = "tcp://128.205.218.189:1883"
-    private val clientId = "Client ID"
-    private val serverTopic = "receive-wl-map"
-    private val STYLE_CUSTOM = "asset://style.json"
+    private val serverUri = "tcp://128.205.218.189:1883" // Server address
+    private val clientId = "Client ID"  // Client ID
+    private val serverTopic = "receive-wl-map"  // ???
+    private val STYLE_CUSTOM = "asset://style.json" // ???
     private val FLOOR1_LAYOUT = "davis01"
     private val FLOOR1_LABELS = "davis01labels"
     private val FLOOR1_DOORS = "davis01doors"
     private val FLOOR3_LABELS = "davis03labels"
     private val FLOOR3_LAYOUT = "davis03"
     private val FLOOR3_DOORS = "davis03doors"
-    private val spinnerOptions = listOf("Select", "All", "Room", "Bathroom", "Staircase", "Elevator")
-    private val LATITUDE = 43.0028
-    private val LONGITUDE = -78.7873
-    private val ZOOM = 17.9
+    private val spinnerOptions = listOf("Select", "All", "Room", "Bathroom", "Staircase", "Elevator") // Drop down options
+    private val LATITUDE = 43.0028 // Starting latitude
+    private val LONGITUDE = -78.7873  // Starting longitude
+    private val ZOOM = 17.9 // Starting zoom
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
 
     private lateinit var mqttHandler: MqttHandler
@@ -89,6 +88,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var annotationAPI: AnnotationPlugin
     private lateinit var userAnnotationManager: CircleAnnotationManager
     private lateinit var doorAnnotationManager: CircleAnnotationManager
+    private lateinit var pointAnnotationManager: CircleAnnotationManager
     private lateinit var polylineAnnotationManager: PolylineAnnotationManager
     private lateinit var mapView: MapView
     private lateinit var buttonF1: Button
@@ -98,12 +98,13 @@ class MainActivity : AppCompatActivity() {
 
     //private var curRoute: List<Point> = null
     private var doorSelected: Point? = null
+    private var pointSelected: Point? = null
     private var circleAnnotationId: CircleAnnotation? = null
     private var prevRoute: PolylineAnnotation? = null
-    private var routeDisplayed: Boolean = false
-    private var prevDoor: Boolean = false
-    private var lastLocation: Pair<Double, Double>? = null
-    private var floorSelected: Int = 0
+    private var routeDisplayed: Boolean = false //Determines if route is being displayed
+    private var prevDoor: Boolean = false //Determines if prevDoor is being displayed
+    private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
+    private var floorSelected: Int = 0 //Determines the floor selected (1-3)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -444,7 +445,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        var userQuery = ""
+        var userQuery = "" //Global variable that holds user search query (Room number)
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
@@ -619,8 +620,14 @@ class MainActivity : AppCompatActivity() {
                                 popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
-                        } else {
+                        } else if (f == null || f.size == 0){
 
+                            val x = screenPoint.x.toInt()
+                            val y = screenPoint.y.toInt()
+
+                            pointSelected = point
+
+                            popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
                             /*
                             mapView.mapboxMap.flyTo(
                                 CameraOptions.Builder()
@@ -1068,6 +1075,7 @@ class MainActivity : AppCompatActivity() {
 //        )
 //
 //
+        // This portion is bugged (causes crashes when entering the circleAnnotationManager)
 //        circleAnnotationManager = annotationAPI.createCircleAnnotationManager()
 //        for (point in test) {
 //            // Create a circle marker for each point
@@ -1082,46 +1090,117 @@ class MainActivity : AppCompatActivity() {
 //            circleAnnotationManager.create(circleMarkerOptions)
 //        }
 
-        navGraph.walkPoints = grabWalk(navGraph)
+        if (pointSelected == null)
+        {
+            navGraph.walkPoints = grabWalk(navGraph)
 
-        mapView.mapboxMap.getStyle { style ->
-            // Get an existing layer by referencing its
-            // unique layer ID (LAYER_ID)
-            val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
-            // Update layer properties
-            layer?.fillOpacity(1.0)
-            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
-            doorLayer?.iconOpacity(0.0)
-            // Add symbol layer for floor 3 labels
-            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
-            symbolLayer?.textOpacity(1.0)
-        }
+            mapView.mapboxMap.getStyle { style ->
+                // Get an existing layer by referencing its
+                // unique layer ID (LAYER_ID)
+                val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                // Update layer properties
+                layer?.fillOpacity(1.0)
+                val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                doorLayer?.iconOpacity(0.0)
+                // Add symbol layer for floor 3 labels
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
+                symbolLayer?.textOpacity(1.0)
+            }
 
-        val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
-        navGraph.addEdge(nearestUserPoint,userLastLocation)
+            userLastLocation = testUserLocation //Test for user location
 
-        val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
-        navGraph.addEdge(nearestDoorPoint,doorSelected!!)
+            val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
+            navGraph.addEdge(nearestUserPoint,userLastLocation)
 
-        if (routeDisplayed) {
-            Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
-            polylineAnnotationManager.delete(prevRoute!!)
+            val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
+            navGraph.addEdge(nearestDoorPoint,doorSelected!!)
 
+            if (routeDisplayed) {
+                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+                polylineAnnotationManager.delete(prevRoute!!)
+
+            } else {
+                Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+            }
+
+            val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                .withPoints(navGraph.calcRoute(userLastLocation, doorSelected!!))
+                // Style the line that will be added to the map.
+                .withLineColor("#0f53ff")
+                .withLineWidth(6.3)
+                .withLineJoin(LineJoin.ROUND)
+                .withLineSortKey(0.0)
+
+            // Add the resulting line to the map.
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
+            routeDisplayed = true
+            return
         } else {
-            Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+            navGraph.walkPoints = grabWalk(navGraph)
+
+            mapView.mapboxMap.getStyle { style ->
+                // Get an existing layer by referencing its
+                // unique layer ID (LAYER_ID)
+                val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                // Update layer properties
+                layer?.fillOpacity(1.0)
+                val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                doorLayer?.iconOpacity(0.0)
+                // Add symbol layer for floor 3 labels
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
+                symbolLayer?.textOpacity(1.0)
+            }
+
+            userLastLocation = testUserLocation //Test for user location
+
+            val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
+            navGraph.addEdge(nearestUserPoint,userLastLocation)
+
+            val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,pointSelected!!)
+            navGraph.addEdge(nearestPoint,pointSelected!!)
+
+
+//            val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+//                .withPoint(pointSelected!!)
+//                .withCircleColor("#ffcf40") // Match the color with the polyline
+//                .withCircleRadius(7.0) // Set the radius of the circle
+//                .withCircleOpacity(1.0) // Set the opacity of the circle
+//                .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+//
+//            pointAnnotationManager.create(circleMarkerOptions)
+
+
+            if (routeDisplayed) {
+                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+                polylineAnnotationManager.delete(prevRoute!!)
+
+            } else {
+                Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+            }
+
+            val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                .withPoints(navGraph.calcRoute(userLastLocation, pointSelected!!))
+                // Style the line that will be added to the map.
+                .withLineColor("#0f53ff")
+                .withLineWidth(6.3)
+                .withLineJoin(LineJoin.ROUND)
+                .withLineSortKey(0.0)
+
+            // Add the resulting line to the map.
+
+
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
+            routeDisplayed = true
+            pointSelected = null
+
+
+
+
+
+
         }
 
-        val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-            .withPoints(navGraph.calcRoute(userLastLocation, doorSelected!!))
-            // Style the line that will be added to the map.
-            .withLineColor("#0f53ff")
-            .withLineWidth(6.3)
-            .withLineJoin(LineJoin.ROUND)
-            .withLineSortKey(0.0)
 
-        // Add the resulting line to the map.
-        prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
-        routeDisplayed = true
 
     }
 
