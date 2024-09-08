@@ -1,5 +1,5 @@
 # WLMap
-This is a navigational android app used to naviagate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
+This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
 User Guide: Contains necessary details and information about the project and tools required to install.
 
 The directory, app/src/main, contains the following files:
