@@ -1075,7 +1075,6 @@ class MainActivity : AppCompatActivity() {
 //        )
 //
 //
-        // This portion is bugged (causes crashes when entering the circleAnnotationManager)
 //        circleAnnotationManager = annotationAPI.createCircleAnnotationManager()
 //        for (point in test) {
 //            // Create a circle marker for each point
@@ -1159,7 +1158,7 @@ class MainActivity : AppCompatActivity() {
             val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,pointSelected!!)
             navGraph.addEdge(nearestPoint,pointSelected!!)
 
-
+            // This portion is bugged (causes crashes when entering the circleAnnotationManager)
 //            val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
 //                .withPoint(pointSelected!!)
 //                .withCircleColor("#ffcf40") // Match the color with the polyline
