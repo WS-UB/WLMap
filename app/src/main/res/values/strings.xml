@@ -1,3 +1,19 @@
 <resources>
+    <!--    Creating names/labels for the menu screen-->
     <string name="app_name">WLMap</string>
+    <string name="open_menu">Open Menu</string>
+    <string name="close_menu">Close Menu</string>
+
+    <!--    Creating the label for the sidebar -->
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">UBIT Name</string>
+    <string name="nav_header_subtitle">ubit@buffalo.edu</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <!--    Creating the name for the buttons in the sidebar -->
+    <string name="menu_home">Home</string>
+    <string name="menu_gallery">WLMap</string>
+    <string name="menu_slideshow">Data</string>
 </resources>
