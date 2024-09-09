@@ -35,7 +35,7 @@ The directory, app/src/main, contains the following files:
 1. Download and install [Android Studio](https://developer.android.com/studio)
    - For Mac users: Download the appropriate installer based on your chipset (Intel Chip or Apple Chip).
    - Follow installer instructions during installation.
-   - This app is compatible with the pixel 7a API 35.
+   - This app is compatible with the Pixel 7a (API 35).
 
 2. Clone the appropriate repository.
 
@@ -50,7 +50,7 @@ The directory, app/src/main, contains the following files:
 4. Select "Device Manager" on the right-side app bar and install the device emulator.
    - If there are any other created devices, end their processes and remove them.
    - Click the "+" to and select "Create Virtual Device."
-   - Select the "Phone" category and select the Pixel 7a.
+   - Select the "Phone" category and select the Pixel 7a (API 35).
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
 
