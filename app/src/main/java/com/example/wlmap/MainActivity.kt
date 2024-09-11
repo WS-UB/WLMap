@@ -103,6 +103,7 @@ class MainActivity : AppCompatActivity() {
     private var prevRoute: PolylineAnnotation? = null
     private var routeDisplayed: Boolean = false //Determines if route is being displayed
     private var prevDoor: Boolean = false //Determines if prevDoor is being displayed
+    private var prevPoint: Boolean = false
     private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
     private var floorSelected: Int = 0 //Determines the floor selected (1-3)
 
@@ -615,9 +616,26 @@ class MainActivity : AppCompatActivity() {
                                 val x = screenPoint.x.toInt()
                                 val y = screenPoint.y.toInt()
 
-                                getClosestDoor(point,currentLayer)
+                                //point the user selected
+                                pointSelected = point
+
+                                // getClosestDoor(point,currentLayer) //Gets closest door and marks it with a circle
 
                                 popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
+
+                                //Delete previously placed circles
+                                pointAnnotationManager.deleteAll()
+
+                                val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+                                    .withPoint(pointSelected!!)
+                                    .withCircleColor("#ffcf40") // Match the color with the polyline
+                                    .withCircleRadius(7.0) // Set the radius of the circle
+                                    .withCircleOpacity(1.0) // Set the opacity of the circle
+                                    .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+
+                                //create the circle on the user-selected point
+                                pointAnnotationManager.create(circleMarkerOptions)
+                                prevPoint = true
                             }
 //                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
                         } else if (f == null || f.size == 0){
@@ -625,9 +643,24 @@ class MainActivity : AppCompatActivity() {
                             val x = screenPoint.x.toInt()
                             val y = screenPoint.y.toInt()
 
+                            //point the user selected
                             pointSelected = point
 
                             popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
+
+                            //Delete previously placed circles
+                            pointAnnotationManager.deleteAll()
+
+                            val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+                                .withPoint(pointSelected!!)
+                                .withCircleColor("#ffcf40") // Match the color with the polyline
+                                .withCircleRadius(7.0) // Set the radius of the circle
+                                .withCircleOpacity(1.0) // Set the opacity of the circle
+                                .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+
+                            //create the circle on the user-selected point
+                            pointAnnotationManager.create(circleMarkerOptions)
+                            prevPoint = true
                             /*
                             mapView.mapboxMap.flyTo(
                                 CameraOptions.Builder()
@@ -649,14 +682,19 @@ class MainActivity : AppCompatActivity() {
         buttonF1.setOnClickListener {
             floorSelected = 1
 
-            if (routeDisplayed) {
+            if (routeDisplayed) { //If a route is already being displayed, delete the route and reset the routeDisplayed boolean
                 polylineAnnotationManager.deleteAll()
                 routeDisplayed = false
             }
 
-            if (prevDoor) {
+            if (prevDoor) { //If a door is already being marked, delete the circle on the door and reset the prevDoor boolean
                 doorAnnotationManager.deleteAll()
                 prevDoor = false
+            }
+
+            if (prevPoint) { //If a point is already being marked, delete the circle on the point and reset the prevPoint boolean
+                pointAnnotationManager.deleteAll()
+                prevPoint = false
             }
 
             mapView.mapboxMap.getStyle { style ->
@@ -718,14 +756,19 @@ class MainActivity : AppCompatActivity() {
         buttonF3.setOnClickListener {
             floorSelected = 3
 
-            if (routeDisplayed) {
+            if (routeDisplayed) { //If a route is already being displayed, delete the route and reset the routeDisplayed boolean
                 polylineAnnotationManager.deleteAll()
                 routeDisplayed = false
             }
 
-            if (prevDoor) {
+            if (prevDoor) { //If a door is already being marked, delete the circle on the door and reset the prevDoor boolean
                 doorAnnotationManager.deleteAll()
                 prevDoor = false
+            }
+
+            if (prevPoint) { //If a point is already being marked, delete the circle on the point and reset the prevPoint boolean
+                pointAnnotationManager.deleteAll()
+                prevPoint = false
             }
 
             mapView.mapboxMap.getStyle { style ->
@@ -788,6 +831,7 @@ class MainActivity : AppCompatActivity() {
         polylineAnnotationManager = annotationAPI.createPolylineAnnotationManager()
         userAnnotationManager = annotationAPI.createCircleAnnotationManager()
         doorAnnotationManager = annotationAPI.createCircleAnnotationManager()
+        pointAnnotationManager = annotationAPI.createCircleAnnotationManager()
     }
 
     private fun userLocationPuck() {
@@ -1108,11 +1152,16 @@ class MainActivity : AppCompatActivity() {
 
             userLastLocation = testUserLocation //Test for user location
 
+            //Obtain the nearest point to the user and add the edge to navGraph
             val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
             navGraph.addEdge(nearestUserPoint,userLastLocation)
 
-            val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
-            navGraph.addEdge(nearestDoorPoint,doorSelected!!)
+//            val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
+//            navGraph.addEdge(nearestDoorPoint,doorSelected!!)
+
+            //Obtain the nearest point to the user-selected point and add the edge to navGraph
+            val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,pointSelected!!)
+            navGraph.addEdge(nearestPoint,pointSelected!!)
 
             if (routeDisplayed) {
                 Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
@@ -1123,7 +1172,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-                .withPoints(navGraph.calcRoute(userLastLocation, doorSelected!!))
+                .withPoints(navGraph.calcRoute(userLastLocation, pointSelected!!))
                 // Style the line that will be added to the map.
                 .withLineColor("#0f53ff")
                 .withLineWidth(6.3)
@@ -1134,6 +1183,7 @@ class MainActivity : AppCompatActivity() {
             prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
             routeDisplayed = true
             return
+
         } else {
             navGraph.walkPoints = grabWalk(navGraph)
 
@@ -1152,21 +1202,13 @@ class MainActivity : AppCompatActivity() {
 
             userLastLocation = testUserLocation //Test for user location
 
+            //Obtain the nearest point to the user and add the edge to navGraph
             val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
             navGraph.addEdge(nearestUserPoint,userLastLocation)
 
+            //Obtain the nearest point to the user-selected point and add the edge to navGraph
             val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,pointSelected!!)
             navGraph.addEdge(nearestPoint,pointSelected!!)
-
-            // This portion is bugged (causes crashes when entering the circleAnnotationManager)
-//            val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
-//                .withPoint(pointSelected!!)
-//                .withCircleColor("#ffcf40") // Match the color with the polyline
-//                .withCircleRadius(7.0) // Set the radius of the circle
-//                .withCircleOpacity(1.0) // Set the opacity of the circle
-//                .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
-//
-//            pointAnnotationManager.create(circleMarkerOptions)
 
 
             if (routeDisplayed) {
@@ -1318,17 +1360,17 @@ class MainActivity : AppCompatActivity() {
                                     if (prevDoor) {
                                         doorAnnotationManager.deleteAll()
                                     }
-                                        // Create a circle marker for each point
-                                        val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
-                                            .withPoint(door)
-                                            .withCircleColor("#ffcf40") // Match the color with the polyline
-                                            .withCircleRadius(7.0) // Set the radius of the circle
-                                            .withCircleOpacity(1.0) // Set the opacity of the circle
-                                            .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+                                    // Create a circle marker for each point
+                                    val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+                                        .withPoint(door)
+                                        .withCircleColor("#ffcf40") // Match the color with the polyline
+                                        .withCircleRadius(7.0) // Set the radius of the circle
+                                        .withCircleOpacity(1.0) // Set the opacity of the circle
+                                        .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
 
-                                        // Add the circle marker to the map
-                                        doorAnnotationManager.create(circleMarkerOptions)
-                                        prevDoor = true
+                                    // Add the circle marker to the map
+                                    doorAnnotationManager.create(circleMarkerOptions)
+                                    prevDoor = true
                                 }
                             }
                         }
