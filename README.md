@@ -4,17 +4,17 @@
 WLMap (Wireless Localization Map) is an indoor navigation app that is used to determine the precise position or location of an object or device within an indoor environment, often using Wi-Fi, Bluetooth, or RFID. 
 
 ## Features
-Currently, this app can provide accurate mapping of Davis Hall, real-time-location tracking, ground truth survey, and optimal route navigation.
+Currently, this app can provide accurate mapping of Davis Hall, real-time location tracking, ground truth survey, and optimal route navigation.
 
 ## Goals and Challenges
-Our current goals of this project includes:
-- Devise a plan to provide an exact location and improve its precision based oon students cellular phones.
+Our current goals for this project include:
+- Devise a plan to provide an exact location and improve its precision based on students' cellular phones.
 - Designing the front end of a navigational map application.
-- Setup server to user connection for the facilitation of future location precision and incorporation of ML algorithms.
+- Setup server-to-user connection for the facilitation of future location precision and incorporation of ML algorithms.
 - Ground truth survey and storing the info in containers.
 
 ## Tools
-For front-end, we use Kotlin and Figma to create the application on Android. For back-end, we use Python and Docker to process data. 
+For the front end, we use Kotlin and Figma to create the application on Android. For the back end, we use Python and Docker to process data. 
 
 ## Deployment Instructions
 1. Download and install [Android Studio](https://developer.android.com/studio)
@@ -31,6 +31,5 @@ For front-end, we use Kotlin and Figma to create the application on Android. For
    - Select the Pixel 7a (API 35)
 
 ## Project Status
-- Currently in the process of developing and running the Home screen on the application.
-   - **Issue**: Run the Home screen by using setContentView(), but the app keeps crashing
+- Currently in the process of integrating the interactive map into the WLMap button
 
