@@ -1,37 +1,22 @@
 # WLMap
-This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
-User Guide: Contains necessary details and information about the project and tools required to install.
 
-The directory, app/src/main, contains the following files:
+## Description
+WLMap (Wireless Localization Map) is an indoor navigation app that is used to determine the precise position or location of an object or device within an indoor environment, often using Wi-Fi, Bluetooth, or RFID. 
 
-1. assets
-   - sprite_images
-       - 1.1.1 exit-door-svgrepo-com.svg
-   - style.json
-2. java/com/example/wlmap
-   - Graph.kt
-      - Create a graph where the nodes are the avigation points (ID, longitude, latitude, and set of neighboring nodes) on the map and the edge is the Haversine distance between the two nodes. Afterward, we use Dijkstra's Algorithm to navigate the shortest path between two points and return a list of points that needed to take.
-   - LocationPermissionHelper.kt
-   - MainActivity.kt
-   - MqttHandler.kt
-   - NavPoint.kt
-      - An abstract data class that works as a constructor to navigate the path between two points.
-3. res
-   - drawable
-   - layout
-   - mipmap-anydpi-v26
-   - mipmap-hdpi
-   - mipmap-mdpi
-   - mipmap-xhdpi
-   - mipmap-xxhdpi
-   - mipmap-xxxhdpi
-   - values-night
-   - values
-   - xml
-4. AndroidManiest.xml
+## Features
+Currently, this app can provide accurate mapping of Davis Hall, real-time-location tracking, ground truth survey, and optimal route navigation.
+
+## Goals and Challenges
+Our current goals of this project includes:
+- Devise a plan to provide an exact location and improve its precision based oon students cellular phones.
+- Designing the front end of a navigational map application.
+- Setup server to user connection for the facilitation of future location precision and incorporation of ML algorithms.
+- Ground truth survey and storing the info in containers.
+
+## Tools
+For front-end, we use Kotlin and Figma to create the application on Android. For back-end, we use Python and Docker to process data. 
 
 ## Deployment Instructions
-
 1. Download and install [Android Studio](https://developer.android.com/studio)
    - For Mac users: Download the appropriate installer based on your chipset (Intel Chip or Apple Chip).
    - Follow installer instructions during installation.
@@ -45,7 +30,6 @@ The directory, app/src/main, contains the following files:
 4. Select "Device Manager" on the right-side app bar and install the device emulator
    - Select the Pixel 7a (API 35)
 
-
-   
+## Project Status
 
 
