@@ -125,7 +125,7 @@ class MainActivity : AppCompatActivity()
 
         // Declare an initialized drawer layer
         setContentView(com.example.wlmap.R.layout.activity_main)
-        //drawerLayout = findViewById<DrawerLayout>(com.example.wlmap.R.id.drawer_layout)
+        drawerLayout = findViewById<DrawerLayout>(com.example.wlmap.R.id.drawer_layout)
 
         // Initialize the tool bar
         val toolbar = findViewById<Toolbar>(com.example.wlmap.R.id.toolbar)
