@@ -23,6 +23,8 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.Composable
+import androidx.test.services.storage.file.PropertyFile
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
@@ -58,6 +60,7 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
+import org.w3c.dom.Text
 import java.lang.ref.WeakReference
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -142,7 +145,21 @@ class MainActivity : AppCompatActivity() {
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
         container.addView(floorLevelButtons)
-
+        buttonF3 = Button(this)
+        buttonF3.id = View.generateViewId() // Generate a unique id for the button
+        val longitude = testUserLocation.longitude().toBigDecimal().toPlainString()
+        val lattitude =testUserLocation.latitude().toBigDecimal().toPlainString()
+        val newstring=longitude.plus(", ")
+        buttonF3.text = newstring.plus(lattitude)
+        buttonF3.setBackgroundColor(Color.DKGRAY)
+        buttonF3.setTextColor(Color.WHITE)
+        val buttonParams3 = LinearLayout.LayoutParams(
+            50.dpToPx(),
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        buttonParams3.gravity = Gravity.END
+        buttonF1.layoutParams = buttonParams3
+        container.addView(buttonF3)
         // Initializing drop down spinner and adding to ContentView container
         val spinner = initRoomSelector()
         container.addView(spinner)
@@ -950,6 +967,7 @@ class MainActivity : AppCompatActivity() {
 
         return floorLevelButtons
     }
+
 
     private fun initMapView() {
         // Enable gestures
