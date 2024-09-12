@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
@@ -23,7 +24,14 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBar
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.FragmentTransaction
+import com.google.android.material.navigation.NavigationView
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
@@ -66,8 +74,9 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity()
+,NavigationView.OnNavigationItemSelectedListener
+{
     private val serverUri = "tcp://128.205.218.189:1883"
     private val clientId = "Client ID"
     private val serverTopic = "receive-wl-map"
@@ -95,6 +104,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonF3: Button
     private lateinit var popupWindow: PopupWindow
     private lateinit var userLastLocation: Point
+    private lateinit var drawerLayout: DrawerLayout
 
     //private var curRoute: List<Point> = null
     private var doorSelected: Point? = null
@@ -109,7 +119,60 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         locationPermissionHelper = LocationPermissionHelper(WeakReference(this))
         locationPermissionHelper.checkPermissions {
-            onMapReady()
+//             ! Call the function that runs the WLMap application app.
+//             onMapReady()
+        }
+
+        // Declare an initialized drawer layer
+        setContentView(com.example.wlmap.R.layout.activity_main)
+        //drawerLayout = findViewById<DrawerLayout>(com.example.wlmap.R.id.drawer_layout)
+
+        // Initialize the tool bar
+        val toolbar = findViewById<Toolbar>(com.example.wlmap.R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        // Initialize the Home Screen
+        val homeScreen = findViewById<NavigationView>(com.example.wlmap.R.id.nav_view)
+        homeScreen.setNavigationItemSelectedListener(this)
+
+        // Create the toggle
+        val toggle = ActionBarDrawerToggle(this, drawerLayout, toolbar, com.example.wlmap.R.string.open_home, com.example.wlmap.R.string.close_home)
+        drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        if(savedInstanceState == null){
+            replaceFragment(HomeFragment())
+            homeScreen.setCheckedItem(com.example.wlmap.R.id.nav_home)
+        }
+    }
+
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when(item.itemId){
+            com.example.wlmap.R.id.nav_home -> supportFragmentManager.beginTransaction().replace(com.example.wlmap.R.id.fragment_container, HomeFragment()).commit()
+            // TODO: Figure out a way to create a WLMap Fragment
+            // com.example.wlmap.R.id.nav_wlmap -> supportFragmentManager.beginTransaction().replace(com.example.wlmap.R.id.fragment_container, HomeFragment()).commit()
+            com.example.wlmap.R.id.nav_data -> supportFragmentManager.beginTransaction().replace(com.example.wlmap.R.id.fragment_container, SendDataFragment()).commit()
+            com.example.wlmap.R.id.nav_setting -> supportFragmentManager.beginTransaction().replace(com.example.wlmap.R.id.fragment_container, SettingsFragment()).commit()
+            com.example.wlmap.R.id.nav_logout -> Toast.makeText(this, "Logout!", Toast.LENGTH_SHORT).show()
+        }
+        drawerLayout.closeDrawer(GravityCompat.START)
+        return true
+    }
+
+    // Create a transaction fragment method
+    private fun replaceFragment(fragment: HomeFragment){
+        val transaction: FragmentTransaction = supportFragmentManager.beginTransaction()
+        transaction.replace(com.example.wlmap.R.id.fragment_container, fragment)
+        transaction.commit()
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        if (drawerLayout.isDrawerOpen((GravityCompat.START))){
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        else{
+            onBackPressedDispatcher.onBackPressed()
         }
     }
 
