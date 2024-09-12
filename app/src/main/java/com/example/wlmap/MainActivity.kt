@@ -142,24 +142,13 @@ class MainActivity : AppCompatActivity() {
         // Initialize navigation directions popup
         initNavigationPopup()
 
+        val ur = initusereadings()
+        container.addView(ur)
+
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
         container.addView(floorLevelButtons)
-        buttonF3 = Button(this)
-        buttonF3.id = View.generateViewId() // Generate a unique id for the button
-        val longitude = testUserLocation.longitude().toBigDecimal().toPlainString()
-        val lattitude =testUserLocation.latitude().toBigDecimal().toPlainString()
-        val newstring=longitude.plus(", ")
-        buttonF3.text = newstring.plus(lattitude)
-        buttonF3.setBackgroundColor(Color.DKGRAY)
-        buttonF3.setTextColor(Color.WHITE)
-        val buttonParams3 = LinearLayout.LayoutParams(
-            50.dpToPx(),
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        buttonParams3.gravity = Gravity.END
-        buttonF1.layoutParams = buttonParams3
-        container.addView(buttonF3)
+
         // Initializing drop down spinner and adding to ContentView container
         val spinner = initRoomSelector()
         container.addView(spinner)
@@ -967,8 +956,36 @@ class MainActivity : AppCompatActivity() {
 
         return floorLevelButtons
     }
+    //Creating space to display Gyroscope and Accelerator readigs
+    private fun initusereadings(): Button {
+        val userreadings = LinearLayout(this)
+        userreadings.id = View.generateViewId() // Generate a unique id for the LinearLayout
+        val paramsButtons = RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.WRAP_CONTENT
+        )
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
+        userreadings.orientation = LinearLayout.VERTICAL
+        userreadings.layoutParams = paramsButtons
+
+        // Create and add buttons to the LinearLayout
+        val readings = Button(this)
+        readings.id = View.generateViewId() // Generate a unique id for the button
+        readings.text = "accelerator and gyroscope readings"
+        readings.setBackgroundColor(Color.DKGRAY)
+        readings.setTextColor(Color.WHITE)
+        val buttonParams1 = LinearLayout.LayoutParams(
+            50.dpToPx(),
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        buttonParams1.gravity = Gravity.END
+        readings.layoutParams = paramsButtons
 
 
+        return readings
+    }
     private fun initMapView() {
         // Enable gestures
         mapView.gestures.doubleTapToZoomInEnabled = true
