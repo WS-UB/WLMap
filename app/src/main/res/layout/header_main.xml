@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="@dimen/nav_header_height"
-    android:background="@drawable/side_nav_bar"
+    android:background="@drawable/color_sidebar"
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
@@ -13,6 +13,7 @@
     android:orientation="vertical"
     android:gravity="bottom">
 
+    <!-- Adding the icon to the sidebar. -->
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -21,16 +22,26 @@
         android:contentDescription="@string/nav_header_desc"
         android:id="@+id/imageView" />
 
+    <!-- ? We have the option to replace the icon with UB Logo, but we are unsure if it's
+    legal to use it or not. Comment the ImageView item above and uncomment the four lines below to use it -->
+<!--    <ImageView-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:src="@drawable/ub_logo"/>-->
+
     <TextView
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingTop="@dimen/nav_header_vertical_spacing"
         android:text="@string/nav_header_title"
+        android:textStyle="bold"
+        android:textSize="16sp"
         android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/nav_header_subtitle"
+        android:textSize="16sp"
         android:id="@+id/textView" />
 </LinearLayout>
