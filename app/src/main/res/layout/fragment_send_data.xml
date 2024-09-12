@@ -7,22 +7,6 @@
     tools:context="com.example.wlmap.MainActivity">
 
     <!-- Title of the Send User's Location section  -->
-
-    <!--    Create a text section indicating to fill in ServerID -->
-
-    <!--    Area to fill in Server ID-->
-
-    <!--    Create a text section indicating to fill in Password -->
-
-
-    <!--    Area to fill in Password-->
-
-    <!--    Create a text section indicating to fill in UserID -->
-
-    <!--    Area to fill in UserID-->
-
-    <!--    Create a text section indicating to fill in Comments -->
-
     <TextView
         android:id="@+id/send_data_title"
         android:layout_width="wrap_content"
@@ -34,6 +18,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!--    Area to fill in Server ID-->
     <TextView
         android:id="@+id/send_data_fill_server_id"
         android:layout_width="219dp"
@@ -45,6 +30,8 @@
         tools:ignore="MissingConstraints"
         tools:layout_editor_absoluteY="247dp" />
 
+
+    <!--    Create a text section indicating to fill in UserID -->
     <TextView
         android:id="@+id/send_data_user_id"
         android:layout_width="84dp"
@@ -57,6 +44,7 @@
         app:layout_constraintTop_toTopOf="@+id/send_data_fill_user_id"
         app:layout_constraintVertical_bias="0.09" />
 
+    <!--    Create a text section indicating to fill in ServerID -->
     <TextView
         android:id="@+id/send_data_server_id"
         android:layout_width="85dp"
@@ -69,6 +57,7 @@
         app:layout_constraintTop_toTopOf="@+id/send_data_fill_server_id"
         app:layout_constraintVertical_bias="0.0" />
 
+    <!--    Area to fill in UserID-->
     <TextView
         android:id="@+id/send_data_fill_user_id"
         android:layout_width="218dp"
@@ -81,6 +70,7 @@
         app:layout_constraintTop_toBottomOf="@+id/send_data_fill_server_id"
         app:layout_constraintVertical_bias="0.323" />
 
+    <!--    Area to fill in Password-->
     <TextView
         android:id="@+id/send_data_fill_password"
         android:layout_width="214dp"
@@ -93,6 +83,7 @@
         app:layout_constraintTop_toBottomOf="@+id/send_data_fill_server_id"
         app:layout_constraintVertical_bias="0.12" />
 
+    <!--    Create a text section indicating to fill in Comments -->
     <TextView
         android:id="@+id/send_data_comments"
         android:layout_width="84dp"
@@ -105,6 +96,7 @@
         app:layout_constraintTop_toTopOf="@+id/send_data_fill_comments"
         app:layout_constraintVertical_bias="1.0" />
 
+    <!--    Area to fill in Comments-->
     <TextView
         android:id="@+id/send_data_fill_comments"
         android:layout_width="218dp"
@@ -117,6 +109,7 @@
         app:layout_constraintTop_toBottomOf="@+id/send_data_fill_server_id"
         app:layout_constraintVertical_bias="0.498" />
 
+    <!--    Create a text section indicating to fill in Password -->
     <TextView
         android:id="@+id/send_data_password"
         android:layout_width="76dp"
@@ -127,9 +120,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.137"
         app:layout_constraintStart_toStartOf="parent" />
-
-    <!--    Area to fill in Comments-->
-
 
     <!-- Submit Button -->
     <Button
