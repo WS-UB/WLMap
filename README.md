@@ -31,5 +31,6 @@ For front-end, we use Kotlin and Figma to create the application on Android. For
    - Select the Pixel 7a (API 35)
 
 ## Project Status
-
+- Currently in the process of developing and running the Home screen on the application.
+   - **Issue**: Run the Home screen by using setContentView(), but the app keeps crashing
 
