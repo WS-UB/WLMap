@@ -59,6 +59,8 @@ import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
 import java.lang.ref.WeakReference
+import java.math.RoundingMode
+import kotlin.math.round
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
@@ -94,6 +96,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonF1: Button
     private lateinit var buttonF3: Button
     private lateinit var popupWindow: PopupWindow
+    private lateinit var latAndlongWindow: PopupWindow
     private lateinit var userLastLocation: Point
 
     //private var curRoute: List<Point> = null
@@ -648,6 +651,13 @@ class MainActivity : AppCompatActivity() {
 
                             popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
 
+                            var latitude = pointSelected!!.latitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert latitude to a string rounded to the fourth decimal
+                            var longitude = pointSelected!!.longitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert longitude to a string rounded to the fourth decimal
+
+                            val positionText = "(" + latitude + ", " + longitude + ")" //Set position text to the lat/long strings
+                            initLatLongPopup(positionText) //Initialize the lat/long popup message with the positionText string
+                            latAndlongWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y-100) //Show the lat/long popup message above the "Get Directions" popup
+
                             //Delete previously placed circles
                             pointAnnotationManager.deleteAll()
 
@@ -905,6 +915,32 @@ class MainActivity : AppCompatActivity() {
             setBackgroundDrawable(null)
         }
     }
+
+    private fun initLatLongPopup(positionText: String) {
+        // Create the button programmatically with an icon next to the text
+        if (pointSelected != null){
+            val button = Button(this).apply {
+                text = positionText
+                // Set the icon to the left of the text
+//                setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_directions, 0)
+//                setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
+                setOnClickListener {
+                    latAndlongWindow.dismiss()
+                }
+            }
+
+            // Initialize the PopupWindow (assuming you have a PopupWindow instance)
+            latAndlongWindow = PopupWindow(this).apply {
+                width = LinearLayout.LayoutParams.WRAP_CONTENT
+                height = LinearLayout.LayoutParams.WRAP_CONTENT
+                isFocusable = true
+                contentView = button
+                setBackgroundDrawable(null)
+            }
+
+        }
+    }
+
 
     private fun initRoomSelector(): Spinner {
         // Create a Spinner
