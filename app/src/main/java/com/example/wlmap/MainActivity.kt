@@ -5,6 +5,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -23,8 +27,6 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.runtime.Composable
-import androidx.test.services.storage.file.PropertyFile
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
@@ -60,7 +62,6 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
-import org.w3c.dom.Text
 import java.lang.ref.WeakReference
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -69,7 +70,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SensorEventListener {
     private val serverUri = "tcp://128.205.218.189:1883" // Server address
     private val clientId = "Client ID"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
@@ -99,6 +100,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var popupWindow: PopupWindow
     private lateinit var userLastLocation: Point
 
+    private lateinit var sensorManager: SensorManager
+    private lateinit var b :Button
+    private lateinit var g: Button
     //private var curRoute: List<Point> = null
     private var doorSelected: Point? = null
     private var pointSelected: Point? = null
@@ -111,6 +115,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        b = Button(this)
+        b.id = View.generateViewId() // Generate a unique id for the button
+        g= Button(this)
+        g.id = View.generateViewId()
+        setUpSensor()
         locationPermissionHelper = LocationPermissionHelper(WeakReference(this))
         locationPermissionHelper.checkPermissions {
             onMapReady()
@@ -141,10 +150,7 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize navigation directions popup
         initNavigationPopup()
-
-        val ur = initusereadings()
-        container.addView(ur)
-
+        container.addView(b)
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
         container.addView(floorLevelButtons)
@@ -956,36 +962,7 @@ class MainActivity : AppCompatActivity() {
 
         return floorLevelButtons
     }
-    //Creating space to display Gyroscope and Accelerator readigs
-    private fun initusereadings(): Button {
-        val userreadings = LinearLayout(this)
-        userreadings.id = View.generateViewId() // Generate a unique id for the LinearLayout
-        val paramsButtons = RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.WRAP_CONTENT,
-            RelativeLayout.LayoutParams.WRAP_CONTENT
-        )
-        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
-        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
-        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
-        userreadings.orientation = LinearLayout.VERTICAL
-        userreadings.layoutParams = paramsButtons
 
-        // Create and add buttons to the LinearLayout
-        val readings = Button(this)
-        readings.id = View.generateViewId() // Generate a unique id for the button
-        readings.text = "accelerator and gyroscope readings"
-        readings.setBackgroundColor(Color.DKGRAY)
-        readings.setTextColor(Color.WHITE)
-        val buttonParams1 = LinearLayout.LayoutParams(
-            50.dpToPx(),
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        buttonParams1.gravity = Gravity.END
-        readings.layoutParams = paramsButtons
-
-
-        return readings
-    }
     private fun initMapView() {
         // Enable gestures
         mapView.gestures.doubleTapToZoomInEnabled = true
@@ -1353,17 +1330,17 @@ class MainActivity : AppCompatActivity() {
                                     if (prevDoor) {
                                         doorAnnotationManager.deleteAll()
                                     }
-                                        // Create a circle marker for each point
-                                        val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
-                                            .withPoint(door)
-                                            .withCircleColor("#ffcf40") // Match the color with the polyline
-                                            .withCircleRadius(7.0) // Set the radius of the circle
-                                            .withCircleOpacity(1.0) // Set the opacity of the circle
-                                            .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+                                    // Create a circle marker for each point
+                                    val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+                                        .withPoint(door)
+                                        .withCircleColor("#ffcf40") // Match the color with the polyline
+                                        .withCircleRadius(7.0) // Set the radius of the circle
+                                        .withCircleOpacity(1.0) // Set the opacity of the circle
+                                        .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
 
-                                        // Add the circle marker to the map
-                                        doorAnnotationManager.create(circleMarkerOptions)
-                                        prevDoor = true
+                                    // Add the circle marker to the map
+                                    doorAnnotationManager.create(circleMarkerOptions)
+                                    prevDoor = true
                                 }
                             }
                         }
@@ -1402,6 +1379,7 @@ class MainActivity : AppCompatActivity() {
         mqttHandler.publish("test/topic",serverMessage)
     }
     override fun onDestroy() {
+        sensorManager.unregisterListener(this)
         super.onDestroy()
         try {
             mqttHandler.disconnect()
@@ -1414,4 +1392,41 @@ class MainActivity : AppCompatActivity() {
         val density = Resources.getSystem().displayMetrics.density
         return (this * density).toInt()
     }
+    private fun setUpSensor(){
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also{
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+    }
+    override fun onSensorChanged(event: SensorEvent?) {
+        if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="accelerator: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="gyroscope: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
+        return
+    }
+
 }
