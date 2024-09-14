@@ -626,6 +626,14 @@ class MainActivity : AppCompatActivity() {
 
                                 popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
 
+                                var latitude = pointSelected!!.latitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert latitude to a string rounded to the fourth decimal
+                                var longitude = pointSelected!!.longitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert longitude to a string rounded to the fourth decimal
+
+                                val positionText = "(" + latitude + ", " + longitude + ")" //Set position text to the lat/long strings
+                                initLatLongPopup(positionText) //Initialize the lat/long popup message with the positionText string
+                                latAndlongWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y-100) //Show the lat/long popup message above the "Get Directions" popup
+
+
                                 //Delete previously placed circles
                                 pointAnnotationManager.deleteAll()
 
@@ -924,6 +932,8 @@ class MainActivity : AppCompatActivity() {
                 // Set the icon to the left of the text
 //                setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_directions, 0)
 //                setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
+                setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_compass, 0)
+                setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
                 setOnClickListener {
                     latAndlongWindow.dismiss()
                 }
