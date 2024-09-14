@@ -119,6 +119,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         b.id = View.generateViewId() // Generate a unique id for the button
         g= Button(this)
         g.id = View.generateViewId()
+        g.text="gyroscope"
         setUpSensor()
         locationPermissionHelper = LocationPermissionHelper(WeakReference(this))
         locationPermissionHelper.checkPermissions {
@@ -150,7 +151,28 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         // Initialize navigation directions popup
         initNavigationPopup()
-        container.addView(b)
+        val readingbuttons = LinearLayout(this)
+        readingbuttons.id = View.generateViewId() // Generate a unique id for the LinearLayout
+        val paramsButtons = RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.WRAP_CONTENT
+        )
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
+        readingbuttons.orientation = LinearLayout.VERTICAL
+        readingbuttons.layoutParams = paramsButtons
+
+        val buttonParams1 = LinearLayout.LayoutParams(
+            300.dpToPx(),
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        buttonParams1.gravity = Gravity.END
+        b.layoutParams = buttonParams1
+        g.layoutParams
+        readingbuttons.addView(b)
+        readingbuttons.addView(g)
+        container.addView(readingbuttons)
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
         container.addView(floorLevelButtons)
