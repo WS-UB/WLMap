@@ -1,7 +1,15 @@
 # WLMap
-This is a navigational android app used to naviagate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
-User Guide: Contains necessary details and information about the project and tools required to install.
 
+## Description
+This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
+
+## Features
+This app can provide accurate mapping of Davis Hall, real-time location tracking, and navigational directions to any point within Davis Hall.
+
+## Tools
+Kotlin and Android Studio are used to create the application on the Android platform, more specifically, a Google Pixel 7A.
+
+## Directory Files and Locations
 The directory, app/src/main, contains the following files:
 
 1. assets
@@ -54,7 +62,10 @@ The directory, app/src/main, contains the following files:
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
 
+## Project Roadmap
 
-   
-
+- [x] User can select any point in Davis Hall and can get navigational directions.
+- [x] The point the user selects is marked and displayed with a circle.
+- [x] Latitude and longitude coordinates are displayed on the point that the user selects.
+- [ ] User can travel to any point within a room in Davis Hall [WIP]
 
