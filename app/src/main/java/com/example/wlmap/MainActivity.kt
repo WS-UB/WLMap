@@ -622,7 +622,7 @@ class MainActivity : AppCompatActivity() {
                                 //point the user selected
                                 pointSelected = point
 
-                                // getClosestDoor(point,currentLayer) //Gets closest door and marks it with a circle
+                                getClosestDoor(point,currentLayer) //Gets closest door and marks it with a circle
 
                                 popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
 
@@ -1179,7 +1179,7 @@ class MainActivity : AppCompatActivity() {
 //            circleAnnotationManager.create(circleMarkerOptions)
 //        }
 
-        if (pointSelected == null)
+        if (doorSelected != null)
         {
             navGraph.walkPoints = grabWalk(navGraph)
 
@@ -1202,23 +1202,40 @@ class MainActivity : AppCompatActivity() {
             val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
             navGraph.addEdge(nearestUserPoint,userLastLocation)
 
-//            val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
-//            navGraph.addEdge(nearestDoorPoint,doorSelected!!)
+            val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
+            navGraph.addEdge(nearestDoorPoint,doorSelected!!)
 
-            //Obtain the nearest point to the user-selected point and add the edge to navGraph
             val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,pointSelected!!)
             navGraph.addEdge(nearestPoint,pointSelected!!)
 
+            //A list that connects a path from the door point to the point selected within the room
+            val door_to_roomPoint: List<Point> = listOf(doorSelected!!, pointSelected!!)
+
+
             if (routeDisplayed) {
                 Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
-                polylineAnnotationManager.delete(prevRoute!!)
+                polylineAnnotationManager.deleteAll()
 
             } else {
                 Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
             }
 
-            val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-                .withPoints(navGraph.calcRoute(userLastLocation, pointSelected!!))
+            //Draws a path from the user location to the door
+            val polylineAnnotationOptions_1: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                .withPoints(navGraph.calcRoute(userLastLocation, doorSelected!!))
+                // Style the line that will be added to the map.
+                .withLineColor("#0f53ff")
+                .withLineWidth(6.3)
+                .withLineJoin(LineJoin.ROUND)
+                .withLineSortKey(0.0)
+
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions_1)
+
+            //Obtain the nearest point to the user-selected point and add the edge to navGraph
+
+            //Draws a path from the door to the point selected by the user
+            val polylineAnnotationOptions_2 = PolylineAnnotationOptions()
+                .withPoints(door_to_roomPoint)
                 // Style the line that will be added to the map.
                 .withLineColor("#0f53ff")
                 .withLineWidth(6.3)
@@ -1226,8 +1243,9 @@ class MainActivity : AppCompatActivity() {
                 .withLineSortKey(0.0)
 
             // Add the resulting line to the map.
-            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions_2)
             routeDisplayed = true
+            doorSelected = null
             return
 
         } else {
@@ -1259,11 +1277,13 @@ class MainActivity : AppCompatActivity() {
 
             if (routeDisplayed) {
                 Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
-                polylineAnnotationManager.delete(prevRoute!!)
+                polylineAnnotationManager.deleteAll()
 
             } else {
                 Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
             }
+
+
 
             val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
                 .withPoints(navGraph.calcRoute(userLastLocation, pointSelected!!))
@@ -1407,15 +1427,15 @@ class MainActivity : AppCompatActivity() {
                                         doorAnnotationManager.deleteAll()
                                     }
                                     // Create a circle marker for each point
-                                    val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
-                                        .withPoint(door)
-                                        .withCircleColor("#ffcf40") // Match the color with the polyline
-                                        .withCircleRadius(7.0) // Set the radius of the circle
-                                        .withCircleOpacity(1.0) // Set the opacity of the circle
-                                        .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
-
-                                    // Add the circle marker to the map
-                                    doorAnnotationManager.create(circleMarkerOptions)
+//                                    val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+//                                        .withPoint(door)
+//                                        .withCircleColor("#ffcf40") // Match the color with the polyline
+//                                        .withCircleRadius(7.0) // Set the radius of the circle
+//                                        .withCircleOpacity(1.0) // Set the opacity of the circle
+//                                        .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+//
+//                                    // Add the circle marker to the map
+//                                    doorAnnotationManager.create(circleMarkerOptions)
                                     prevDoor = true
                                 }
                             }
