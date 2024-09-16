@@ -32,4 +32,4 @@ For the front end, we use Kotlin and Figma to create the application on Android.
 
 ## Project Status
 - [X] Enable the feature to fill in the information on the Share Data page.
-- [] Integrating the interactive map fragment into the WLMap button.
+- [ ] Integrating the interactive map fragment into the WLMap button.
