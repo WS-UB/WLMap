@@ -1,136 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center"
+    android:padding="30dp"
     tools:context="com.example.wlmap.MainActivity">
 
-    <!-- Title of the Send User's Location section  -->
-    <TextView
-        android:id="@+id/send_data_title"
-        android:layout_width="wrap_content"
+<!--    We align the fill-in features at the center of the screen-->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="140dp"
-        android:text="Send User's Location to Server"
-        android:textSize="18sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:gravity="center"
+        android:orientation="vertical">
 
-    <!--    Area to fill in Server ID-->
-    <TextView
-        android:id="@+id/send_data_fill_server_id"
-        android:layout_width="219dp"
-        android:layout_height="24dp"
-        android:text="________________________________"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.739"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteY="247dp" />
+        <TextView
+            android:id="@+id/send_data_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="60dp"
+            android:text="Send User's Location to Server"
+            android:textSize="20sp" />
+
+        <!-- Create a space for filling in Server ID-->
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:autofillHints=""
+            android:hint="Server ID"
+            android:textColor="@color/black"
+            android:textColorHint="@color/black"
+            android:textSize="20sp"
+            android:background="@drawable/rounded_corner_box"
+            android:padding="12dp"
+            android:inputType="text"
+            android:id="@+id/fill_server_id"/>
+
+        <!-- Create a space for filling in User ID-->
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:background="@drawable/rounded_corner_box"
+            android:autofillHints="username"
+            android:hint="User ID"
+            android:inputType="text"
+            android:padding="12dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/black"
+            android:textSize="20sp"
+            android:id="@+id/fill_user_id"/>
+
+        <!-- Create a space for filling in Password-->
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:autofillHints="password"
+            android:hint="Password"
+            android:textColor="@color/black"
+            android:textColorHint="@color/black"
+            android:textSize="20sp"
+            android:background="@drawable/rounded_corner_box"
+            android:padding="12dp"
+            android:inputType="textPassword"
+            android:id="@+id/fill_password"/>
+
+        <!-- Create a space for filling in Comment-->
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:hint="Comment"
+            android:textColor="@color/black"
+            android:textColorHint="@color/black"
+            android:textSize="20sp"
+            android:background="@drawable/rounded_corner_box"
+            android:padding="12dp"
+            android:inputType="text"
+            android:id="@+id/fill_comment"/>
+
+        <!-- Submit Button -->
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/send_data_button"
+            android:text="Send"
+            android:padding="10dp"
+            android:layout_marginTop="32dp"
+            android:textSize="16sp"/>
 
 
-    <!--    Create a text section indicating to fill in UserID -->
-    <TextView
-        android:id="@+id/send_data_user_id"
-        android:layout_width="84dp"
-        android:layout_height="28dp"
-        android:text="User ID:"
-        app:layout_constraintBottom_toBottomOf="@+id/send_data_fill_password"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.14"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/send_data_fill_user_id"
-        app:layout_constraintVertical_bias="0.09" />
 
-    <!--    Create a text section indicating to fill in ServerID -->
-    <TextView
-        android:id="@+id/send_data_server_id"
-        android:layout_width="85dp"
-        android:layout_height="28dp"
-        android:text="ServerID:"
-        app:layout_constraintBottom_toBottomOf="@+id/send_data_fill_server_id"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.141"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/send_data_fill_server_id"
-        app:layout_constraintVertical_bias="0.0" />
+    </LinearLayout>
 
-    <!--    Area to fill in UserID-->
-    <TextView
-        android:id="@+id/send_data_fill_user_id"
-        android:layout_width="218dp"
-        android:layout_height="27dp"
-        android:text="________________________________"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.72"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/send_data_fill_server_id"
-        app:layout_constraintVertical_bias="0.323" />
-
-    <!--    Area to fill in Password-->
-    <TextView
-        android:id="@+id/send_data_fill_password"
-        android:layout_width="214dp"
-        android:layout_height="27dp"
-        android:text="________________________________"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.72"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/send_data_fill_server_id"
-        app:layout_constraintVertical_bias="0.12" />
-
-    <!--    Create a text section indicating to fill in Comments -->
-    <TextView
-        android:id="@+id/send_data_comments"
-        android:layout_width="84dp"
-        android:layout_height="28dp"
-        android:text="Comments:"
-        app:layout_constraintBottom_toBottomOf="@+id/send_data_fill_comments"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.143"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/send_data_fill_comments"
-        app:layout_constraintVertical_bias="1.0" />
-
-    <!--    Area to fill in Comments-->
-    <TextView
-        android:id="@+id/send_data_fill_comments"
-        android:layout_width="218dp"
-        android:layout_height="27dp"
-        android:text="________________________________"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.72"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/send_data_fill_server_id"
-        app:layout_constraintVertical_bias="0.498" />
-
-    <!--    Create a text section indicating to fill in Password -->
-    <TextView
-        android:id="@+id/send_data_password"
-        android:layout_width="76dp"
-        android:layout_height="28dp"
-        android:layout_marginBottom="12dp"
-        android:text="Password:"
-        app:layout_constraintBottom_toBottomOf="@+id/send_data_fill_password"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.137"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <!-- Submit Button -->
-    <Button
-        android:id="@+id/submitButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Send"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteY="581dp" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</RelativeLayout>
