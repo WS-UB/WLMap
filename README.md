@@ -31,5 +31,5 @@ For the front end, we use Kotlin and Figma to create the application on Android.
    - Select the Pixel 7a (API 35)
 
 ## Project Status
-- Currently in the process of integrating the interactive map into the WLMap button
-
+- [X] Enable the feature to fill in the information on the Share Data page.
+- [] Integrating the interactive map fragment into the WLMap button.
