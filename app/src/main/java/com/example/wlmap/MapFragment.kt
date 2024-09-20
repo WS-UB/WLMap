@@ -1,6 +1,5 @@
 package com.example.wlmap
 
-import LocationPermissionHelper
 import android.R
 import android.content.ContentValues
 import android.content.Context
@@ -10,7 +9,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
@@ -25,19 +23,10 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.ActionBar
-import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentTransaction
-import com.google.android.material.navigation.NavigationView
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
-import com.mapbox.common.location.Location
 import com.mapbox.common.location.LocationObserver
 import com.mapbox.common.location.LocationProviderRequest
 import com.mapbox.common.location.LocationService
@@ -69,7 +58,6 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
-import java.lang.ref.WeakReference
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow

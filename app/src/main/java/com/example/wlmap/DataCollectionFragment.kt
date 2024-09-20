@@ -1,6 +1,5 @@
 package com.example.wlmap
 
-import LocationPermissionHelper
 import android.R
 import android.content.ContentValues
 import android.content.Context
@@ -10,7 +9,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
@@ -25,19 +23,11 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.ActionBar
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentTransaction
-import com.google.android.material.navigation.NavigationView
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
-import com.mapbox.common.location.Location
 import com.mapbox.common.location.LocationObserver
 import com.mapbox.common.location.LocationProviderRequest
 import com.mapbox.common.location.LocationService
@@ -69,14 +59,13 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
-import java.lang.ref.WeakReference
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class DataCollection : Fragment()
+class DataCollectionFragment : Fragment()
 {
     private val serverUri = "tcp://128.205.218.189:1883"
     private val clientId = "Client ID"
@@ -102,6 +91,8 @@ class DataCollection : Fragment()
     private lateinit var mapView: MapView
     private lateinit var buttonF1: Button
     private lateinit var buttonF3: Button
+    private lateinit var buttonSendLocation: Button
+    private lateinit var buttonConfirmLocation: Button
     private lateinit var popupWindow: PopupWindow
     private lateinit var userLastLocation: Point
 
@@ -144,6 +135,11 @@ class DataCollection : Fragment()
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
         container.addView(floorLevelButtons)
+
+        // Add the button that can send the user's location to the server and rate their
+        // confirmation rate.
+        val sendLocationButton = initSendLocation()
+        container.addView(sendLocationButton)
 
         // Initializing drop down spinner and adding to ContentView container
         val spinner = initRoomSelector()
@@ -600,8 +596,7 @@ class DataCollection : Fragment()
                 return false
             }
         })
-
-
+        
 
         mapView.mapboxMap.addOnMapClickListener { point ->
             var sourceLayerId = ""
@@ -786,7 +781,6 @@ class DataCollection : Fragment()
             }
         }
 
-
         buttonF3.setOnClickListener {
             floorSelected = 3
 
@@ -854,6 +848,17 @@ class DataCollection : Fragment()
             }
         }
 
+        // Set up action for sending user's location button
+        buttonSendLocation.setOnClickListener(){
+            Log.i("SendLoc", "Location Sent!")
+        }
+
+        // Set up action for confirming user's location button
+        buttonConfirmLocation.setOnClickListener(){
+            val showPopUp = RateConfidenceFragment()
+            showPopUp.show((activity as AppCompatActivity).supportFragmentManager, "showPopUp")
+        }
+        
         return container
     }
 
@@ -1023,6 +1028,65 @@ class DataCollection : Fragment()
         floorLevelButtons.addView(buttonF3)
 
         return floorLevelButtons
+    }
+
+    /*
+    * Create two buttons:
+    * 1. Send the user's location to the server
+    * 2. Ask the user their confidence score.
+    * */
+    private fun initSendLocation(): LinearLayout {
+        // Create a LinearLayout to hold the buttons
+        val sendLocationButtons = LinearLayout(requireContext())
+        sendLocationButtons.id = View.generateViewId() // Generate a unique id for the LinearLayout
+        val paramsButtons = RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.WRAP_CONTENT
+        )
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
+        sendLocationButtons.orientation = LinearLayout.VERTICAL
+        sendLocationButtons.layoutParams = paramsButtons
+
+        // Create and add buttons to the LinearLayout
+        buttonSendLocation = Button(requireContext())
+        buttonSendLocation.id = View.generateViewId() // Generate a unique id for the button
+        buttonSendLocation.text = "Send Loc"
+        buttonSendLocation.setBackgroundColor(Color.DKGRAY)
+        buttonSendLocation.setTextColor(Color.WHITE)
+
+        // Set padding inside the button
+        buttonSendLocation.setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+
+        // Set the width to WRAP_CONTENT so the button fits the text
+        val buttonParams1 = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, // Make the button width fit the text
+            LinearLayout.LayoutParams.WRAP_CONTENT  // Height is still WRAP_CONTENT
+        )
+        buttonParams1.gravity = Gravity.START
+        buttonSendLocation.layoutParams = buttonParams1
+        sendLocationButtons.addView(buttonSendLocation)
+
+        buttonConfirmLocation = Button(requireContext())
+        buttonConfirmLocation.id = View.generateViewId() // Generate a unique id for the button
+        buttonConfirmLocation.text = "Rate Confidence"
+        buttonConfirmLocation.setBackgroundColor(Color.DKGRAY)
+        buttonConfirmLocation.setTextColor(Color.WHITE)
+
+        // Set padding inside the button
+        buttonConfirmLocation.setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+
+        // Set the width to WRAP_CONTENT for this button as well
+        val buttonParams2 = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, // Make the button width fit the text
+            LinearLayout.LayoutParams.WRAP_CONTENT  // Height is still WRAP_CONTENT
+        )
+        buttonParams2.gravity = Gravity.START
+        buttonConfirmLocation.layoutParams = buttonParams2
+        sendLocationButtons.addView(buttonConfirmLocation)
+
+        return sendLocationButtons
     }
 
     private fun initMapView() {

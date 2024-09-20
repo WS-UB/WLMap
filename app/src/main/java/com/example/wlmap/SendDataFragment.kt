@@ -2,15 +2,12 @@ package com.example.wlmap
 
 import android.os.Bundle
 import android.util.Log
-import android.view.AbsSavedState
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
-import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentActivity
 
 class SendDataFragment : Fragment() {
 
@@ -25,14 +22,14 @@ class SendDataFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        val view = inflater.inflate(com.example.wlmap.R.layout.fragment_send_data, container, false)
+        val view = inflater.inflate(R.layout.fragment_send_data, container, false)
 
         // Initialize views using the inflated layout
-        serverIdInput = view.findViewById(com.example.wlmap.R.id.fill_server_id)
-        userIdInput = view.findViewById(com.example.wlmap.R.id.fill_user_id)
-        passwordInput = view.findViewById(com.example.wlmap.R.id.fill_password)
-        commentInput = view.findViewById(com.example.wlmap.R.id.fill_comment)
-        sendDataButton = view.findViewById(com.example.wlmap.R.id.send_data_button)
+        serverIdInput = view.findViewById(R.id.fill_server_id)
+        userIdInput = view.findViewById(R.id.fill_user_id)
+        passwordInput = view.findViewById(R.id.fill_password)
+        commentInput = view.findViewById(R.id.fill_comment)
+        sendDataButton = view.findViewById(R.id.send_data_button)
 
         sendDataButton.setOnClickListener {
             val serverID = serverIdInput.text.toString()
