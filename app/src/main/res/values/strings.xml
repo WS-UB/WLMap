@@ -14,7 +14,7 @@
 
     <!--    Creating the name for the buttons in the sidebar -->
     <string name="name_sidebar_home">Home</string>
-    <string name="name_sidebar_map">WLMap</string>
+    <string name="name_sidebar_map">Navigation</string>
     <string name="name_sidebar_data">Share Data</string>
     <string name="name_sidebar_setting">Setting</string>
     <string name="name_sidebar_logout">Log Out</string>
