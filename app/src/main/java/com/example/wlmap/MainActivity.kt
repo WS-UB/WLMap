@@ -1,9 +1,30 @@
 package com.example.wlmap
 
 import LocationPermissionHelper
+import android.R
+import android.content.ContentValues
+import android.content.Context
+import android.content.res.Resources
+import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
+import android.view.Gravity
 import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.RelativeLayout
+import android.widget.SearchView
+import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -11,22 +32,55 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.FragmentTransaction
 import com.google.android.material.navigation.NavigationView
+import com.mapbox.common.location.AccuracyLevel
+import com.mapbox.common.location.DeviceLocationProvider
+import com.mapbox.common.location.IntervalSettings
+import com.mapbox.common.location.Location
+import com.mapbox.common.location.LocationObserver
+import com.mapbox.common.location.LocationProviderRequest
+import com.mapbox.common.location.LocationService
+import com.mapbox.common.location.LocationServiceFactory
+import com.mapbox.geojson.Point
+import com.mapbox.geojson.Polygon
+import com.mapbox.maps.CameraOptions
+import com.mapbox.maps.MapView
+import com.mapbox.maps.RenderedQueryGeometry
+import com.mapbox.maps.RenderedQueryOptions
+import com.mapbox.maps.ScreenBox
+import com.mapbox.maps.extension.style.expressions.generated.Expression
+import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
+import com.mapbox.maps.extension.style.layers.generated.FillLayer
+import com.mapbox.maps.extension.style.layers.getLayerAs
+import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
+import com.mapbox.maps.plugin.animation.flyTo
+import com.mapbox.maps.plugin.annotation.AnnotationPlugin
+import com.mapbox.maps.plugin.annotation.annotations
+import com.mapbox.maps.plugin.annotation.generated.CircleAnnotation
+import com.mapbox.maps.plugin.annotation.generated.CircleAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.CircleAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotation
+import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.createCircleAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
+import com.mapbox.maps.plugin.gestures.addOnMapClickListener
+import com.mapbox.maps.plugin.gestures.gestures
+import com.mapbox.maps.toCameraOptions
+import org.eclipse.paho.client.mqttv3.MqttException
 import java.lang.ref.WeakReference
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class MainActivity : AppCompatActivity()
 ,NavigationView.OnNavigationItemSelectedListener
 {
-    private lateinit var locationPermissionHelper: LocationPermissionHelper
     private lateinit var drawerLayout: DrawerLayout
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        locationPermissionHelper = LocationPermissionHelper(WeakReference(this))
-        locationPermissionHelper.checkPermissions {
-//             ! Call the function that runs the WLMap application app.
-//             onMapReady()
-        }
 
         // Set the layout for the activity. This loads the 'activity_main' layout resource.
         setContentView(com.example.wlmap.R.layout.activity_main)
@@ -69,7 +123,6 @@ class MainActivity : AppCompatActivity()
             // If the "Home" item is selected, replace the current fragment with 'HomeFragment'.
             com.example.wlmap.R.id.nav_home -> supportFragmentManager.beginTransaction().replace(com.example.wlmap.R.id.fragment_container, HomeFragment()).commit()
 
-            // TODO: Figure out a way to create a WLMap Fragment
             // If the "WLMap" item is selected, we run the interactive map.
             com.example.wlmap.R.id.nav_wlmap -> supportFragmentManager.beginTransaction().replace(com.example.wlmap.R.id.fragment_container, MapFragment()).commit()
 

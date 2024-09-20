@@ -76,7 +76,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class MapFragment : Fragment()
+class DataCollection : Fragment()
 {
     private val serverUri = "tcp://128.205.218.189:1883"
     private val clientId = "Client ID"
@@ -1359,8 +1359,8 @@ class MapFragment : Fragment()
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe(serverTopic)
         mqttHandler.onMessageReceived = { message ->
-             Log.e("SERVER", message)
-            }
+            Log.e("SERVER", message)
+        }
     }
     private fun publishLocation(point: Point) {
         val lat = point.latitude()
