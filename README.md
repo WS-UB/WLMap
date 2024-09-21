@@ -21,7 +21,10 @@ The directory, app/src/main, contains the following files:
       - Create a graph where the nodes are the navigation points (ID, longitude, latitude, and set of neighboring nodes) on the map and the edge is the Haversine distance between the two nodes. Afterward, we use Dijkstra's Algorithm to navigate the shortest path between two points and return a list of points that needed to take.
    - LocationPermissionHelper.kt
    - MainActivity.kt
+<<<<<<< HEAD
      - Uses Android sensor to display Accelerator and Gyroscope readings
+=======
+>>>>>>> origin/feature/user-search-navigation
    - MqttHandler.kt
    - NavPoint.kt
       - An abstract data class that works as a constructor to navigate the path between two points.
@@ -63,10 +66,18 @@ The directory, app/src/main, contains the following files:
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
 
+<<<<<<< HEAD
 ## Project Roadmap
 
 - [x] User can select any point in Davis Hall and can get navigational directions.
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [ ] User can travel to any point within a room in Davis Hall [WIP]
+=======
+## Project Status
+User can search for any room in the search bar and get navigational directions to the room
+
+
+ 
+>>>>>>> origin/feature/user-search-navigation
 

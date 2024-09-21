@@ -1,6 +1,7 @@
 package com.example.wlmap
 import LocationPermissionHelper
 import android.R
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.content.res.Resources
@@ -89,6 +90,23 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private val ZOOM = 17.9 // Starting zoom
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
 
+class MainActivity : AppCompatActivity() {
+    private val serverUri = "tcp://128.205.218.189:1883" // Server address
+    private val clientId = "Client ID"  // Client ID
+    private val serverTopic = "receive-wl-map"  // ???
+    private val STYLE_CUSTOM = "asset://style.json" // ???
+    private val FLOOR1_LAYOUT = "davis01"
+    private val FLOOR1_LABELS = "davis01labels"
+    private val FLOOR1_DOORS = "davis01doors"
+    private val FLOOR3_LABELS = "davis03labels"
+    private val FLOOR3_LAYOUT = "davis03"
+    private val FLOOR3_DOORS = "davis03doors"
+    private val spinnerOptions = listOf("Select", "All", "Room", "Bathroom", "Staircase", "Elevator") // Drop down options
+    private val LATITUDE = 43.0028 // Starting latitude
+    private val LONGITUDE = -78.7873  // Starting longitude
+    private val ZOOM = 17.9 // Starting zoom
+    private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
+
     private lateinit var mqttHandler: MqttHandler
     private lateinit var locationPermissionHelper: LocationPermissionHelper
     private lateinit var annotationAPI: AnnotationPlugin
@@ -106,6 +124,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private lateinit var b :Button
     private lateinit var g: Button
+    private lateinit var userLastLocation: Point
+
     //private var curRoute: List<Point> = null
     private var doorSelected: Point? = null
     private var pointSelected: Point? = null
@@ -131,6 +151,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
+    @SuppressLint("IncorrectNumberOfArgumentsInExpression")
     private fun onMapReady() {
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
@@ -177,6 +198,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         readingbuttons.addView(b)
         readingbuttons.addView(g)
         container.addView(readingbuttons)
+
+        // Initialize navigation directions popup
+        initNavigationPopup()
+
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
         container.addView(floorLevelButtons)
@@ -453,6 +478,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         fun hideKeyboard(context: Context, view: View) {
             val inputMethodManager =
                 context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
             searchView.clearFocus()
         }
