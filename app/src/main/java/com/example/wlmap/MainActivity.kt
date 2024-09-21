@@ -5,6 +5,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -68,7 +72,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SensorEventListener {
     private val serverUri = "tcp://128.205.218.189:1883" // Server address
     private val clientId = "Client ID"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
@@ -99,6 +103,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var latAndlongWindow: PopupWindow
     private lateinit var userLastLocation: Point
 
+    private lateinit var sensorManager: SensorManager
+    private lateinit var b :Button
+    private lateinit var g: Button
     //private var curRoute: List<Point> = null
     private var doorSelected: Point? = null
     private var pointSelected: Point? = null
@@ -112,6 +119,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        b = Button(this)
+        b.id = View.generateViewId() // Generate a unique id for the button
+        g= Button(this)
+        g.id = View.generateViewId()
+        g.text="gyroscope"
+        setUpSensor()
         locationPermissionHelper = LocationPermissionHelper(WeakReference(this))
         locationPermissionHelper.checkPermissions {
             onMapReady()
@@ -142,7 +155,28 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize navigation directions popup
         initNavigationPopup()
+        val readingbuttons = LinearLayout(this)
+        readingbuttons.id = View.generateViewId() // Generate a unique id for the LinearLayout
+        val paramsButtons = RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.WRAP_CONTENT
+        )
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
+        readingbuttons.orientation = LinearLayout.VERTICAL
+        readingbuttons.layoutParams = paramsButtons
 
+        val buttonParams1 = LinearLayout.LayoutParams(
+            300.dpToPx(),
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        buttonParams1.gravity = Gravity.END
+        b.layoutParams = buttonParams1
+        g.layoutParams
+        readingbuttons.addView(b)
+        readingbuttons.addView(g)
+        container.addView(readingbuttons)
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
         container.addView(floorLevelButtons)
@@ -1475,6 +1509,7 @@ class MainActivity : AppCompatActivity() {
         mqttHandler.publish("test/topic",serverMessage)
     }
     override fun onDestroy() {
+        sensorManager.unregisterListener(this)
         super.onDestroy()
         try {
             mqttHandler.disconnect()
@@ -1487,4 +1522,41 @@ class MainActivity : AppCompatActivity() {
         val density = Resources.getSystem().displayMetrics.density
         return (this * density).toInt()
     }
+    private fun setUpSensor(){
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also{
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+    }
+    override fun onSensorChanged(event: SensorEvent?) {
+        if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="accelerator: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="gyroscope: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
+        return
+    }
+
 }
