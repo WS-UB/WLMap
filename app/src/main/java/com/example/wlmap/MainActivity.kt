@@ -30,7 +30,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
-import com.mapbox.common.location.Location
 import com.mapbox.common.location.LocationObserver
 import com.mapbox.common.location.LocationProviderRequest
 import com.mapbox.common.location.LocationService
@@ -43,8 +42,8 @@ import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.ScreenBox
 import com.mapbox.maps.extension.style.expressions.generated.Expression
-import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
+import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.plugin.animation.flyTo
@@ -71,8 +70,8 @@ import kotlin.math.sqrt
 
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
-    private val serverUri = "tcp://128.205.218.189:1883" // Server address
-    private val clientId = "Client ID"  // Client ID
+    private val serverUri = "tcp://128.205.221.173:8883" // Server address
+    private val clientId = "001000"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
     private val STYLE_CUSTOM = "asset://style.json" // ???
     private val FLOOR1_LAYOUT = "davis01"
@@ -112,17 +111,16 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var prevDoor: Boolean = false //Determines if prevDoor is being displayed
     private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
     private var floorSelected: Int = 0 //Determines the floor selected (1-3)
+    var runnable: Runnable = Runnable {
+        initMQTTHandler()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        b = Button(this)
-        b.id = View.generateViewId() // Generate a unique id for the button
-        g= Button(this)
-        g.id = View.generateViewId()
-        g.text="gyroscope"
-        setUpSensor()
         locationPermissionHelper = LocationPermissionHelper(WeakReference(this))
         locationPermissionHelper.checkPermissions {
+            val thread: Thread = Thread(runnable)
+            thread.start()
             onMapReady()
         }
     }
@@ -131,8 +129,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
         // 2. Connection to UB VPN or UB network
-        initMQTTHandler()
-
+        //initMQTTHandler()
+        b = Button(this)
+        b.id = View.generateViewId() // Generate a unique id for the button
+        g= Button(this)
+        g.id = View.generateViewId()
+        g.text="gyroscope"
+        setUpSensor()
+        //mqttHandler.publish("test/topic" ,"hello tstig")
         // Create a RelativeLayout to hold the MapView
         val container = RelativeLayout(this)
         mapView = MapView(this)
@@ -1385,9 +1389,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     }
 
     private fun initMQTTHandler() {
+        //private val serverUri = "tcp://128.205.2221.173:8883" // Server address
+        //private val clientId = "001000"  // Client ID
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId)
-        mqttHandler.subscribe(serverTopic)
+        mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
             runOnUiThread {
                 Log.e("SERVER", message)
@@ -1417,11 +1423,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private fun setUpSensor(){
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
 
-        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
-            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
-        }
         sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also{
-            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
     override fun onSensorChanged(event: SensorEvent?) {
@@ -1441,7 +1447,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val z= event.values[2]
             val t="gyroscope: "
             val comma= ", "
-            b.apply{
+            g.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
         }

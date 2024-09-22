@@ -1,5 +1,6 @@
 package com.example.wlmap
 
+import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -19,6 +20,7 @@ class MqttHandler {
 
             //initialize MQTT client
             client = MqttClient(brokerUrl, clientId, persistence)
+
 
             //setup connection options
             val connectOptions = MqttConnectOptions()
@@ -41,7 +43,7 @@ class MqttHandler {
                 }
             })
 
-            client!!.connect(connectOptions)
+            client!!.connect()
 
         } catch (e: MqttException) {
             e.printStackTrace()
