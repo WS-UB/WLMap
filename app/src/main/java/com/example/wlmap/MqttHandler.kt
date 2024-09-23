@@ -1,5 +1,4 @@
 package com.example.wlmap
-
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -31,6 +30,16 @@ class MqttHandler {
                 }
 
                 override fun messageArrived(topic: String?, message: MqttMessage?) {
+
+                    val data = message.toString().split(",")  // Assuming the format is "latitude,longitude"
+                    val latitude = data[0].toDouble()
+                    val longitude = data[1].toDouble()
+
+                    // You can now use the latitude and longitude in your app, for example, update a map UI
+                    println("Received coordinates: Latitude = $latitude, Longitude = $longitude")
+                }
+
+
                     // Handle incoming messages
                     onMessageReceived?.invoke(message.toString())
                     println("Message received: ${message?.toString()}")
@@ -42,6 +51,10 @@ class MqttHandler {
             })
 
             client!!.connect(connectOptions)
+
+
+            client?.subscribe("coordinates/topic")
+
 
         } catch (e: MqttException) {
             e.printStackTrace()
