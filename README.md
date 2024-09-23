@@ -31,15 +31,20 @@ The directory, app/src/main, contains the following files:
    - style.json
 2. java/com/example/wlmap
    - Graph.kt
-      - Create a graph where the nodes are the navigation points (ID, longitude, latitude, and set of neighboring nodes) on the map and the edge is the Haversine distance between the two nodes. Afterward, we use Dijkstra's Algorithm to navigate the shortest path between two points and return a list of points that needed to take.
+   - DataCollectionFragment.kt
+   - HomeFragment.kt
    - LocationPermissionHelper.kt
    - MainActivity.kt
+   - MapFragment.kt
    - MqttHandler.kt
    - NavPoint.kt
-      - An abstract data class that works as a constructor to navigate the path between two points.
+   - RateConfidenceFragment.kt
+   - SendDataFragment.kt
+   - SettingsFragment.kt
 3. res
    - drawable
    - layout
+   - menu
    - mipmap-anydpi-v26
    - mipmap-hdpi
    - mipmap-mdpi
