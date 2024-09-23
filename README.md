@@ -14,6 +14,7 @@ The directory, app/src/main, contains the following files:
    - LocationPermissionHelper.kt
    - MainActivity.kt
    - MqttHandler.kt
+      - In order to use the MqttHandler to send data to the server you must first start the mqtt broker in the server you wish to send data to and then be sure to change the ServerUri variable in MainActivty.Kt to the server address. 
    - NavPoint.kt
       - An abstract data class that works as a constructor to navigate the path between two points.
 3. res
