@@ -1,16 +1,23 @@
 package com.example.wlmap
-
 import LocationPermissionHelper
 import android.R
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
+import android.content.Context.INPUT_METHOD_SERVICE
+import android.content.Context.SENSOR_SERVICE
 import android.content.res.Resources
 import android.graphics.Color
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.MenuItem
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
@@ -24,10 +31,12 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.fragment.app.Fragment
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
+import com.mapbox.common.location.Location
 import com.mapbox.common.location.LocationObserver
 import com.mapbox.common.location.LocationProviderRequest
 import com.mapbox.common.location.LocationService
@@ -59,30 +68,40 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
+import java.lang.ref.WeakReference
 import java.math.RoundingMode
+import kotlin.math.round
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+import com.google.android.material.navigation.NavigationView
 
-class MapFragment : Fragment()
-{
-    private val serverUri = "tcp://128.205.218.189:1883"
-    private val clientId = "Client ID"
-    private val serverTopic = "receive-wl-map"
-    private val STYLE_CUSTOM = "asset://style.json"
+
+class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
+    private val serverUri = "tcp://128.205.218.189:1883" // Server address
+    private val clientId = "Client ID"  // Client ID
+    private val serverTopic = "receive-wl-map"  // ???
+    private val STYLE_CUSTOM = "asset://style.json" // ???
     private val FLOOR1_LAYOUT = "davis01"
     private val FLOOR1_LABELS = "davis01labels"
     private val FLOOR1_DOORS = "davis01doors"
     private val FLOOR3_LABELS = "davis03labels"
     private val FLOOR3_LAYOUT = "davis03"
     private val FLOOR3_DOORS = "davis03doors"
-    private val spinnerOptions = listOf("Select", "All", "Room", "Bathroom", "Staircase", "Elevator")
-    private val LATITUDE = 43.0028
-    private val LONGITUDE = -78.7873
-    private val ZOOM = 17.9
+    private val spinnerOptions = listOf("Select", "All", "Room", "Bathroom", "Staircase", "Elevator") // Drop down options
+    private val LATITUDE = 43.0028 // Starting latitude
+    private val LONGITUDE = -78.7873  // Starting longitude
+    private val ZOOM = 17.9 // Starting zoom
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
+
 
     private lateinit var mqttHandler: MqttHandler
     private lateinit var locationPermissionHelper: LocationPermissionHelper
@@ -96,6 +115,10 @@ class MapFragment : Fragment()
     private lateinit var buttonF3: Button
     private lateinit var popupWindow: PopupWindow
     private lateinit var latAndlongWindow: PopupWindow
+
+    private lateinit var sensorManager: SensorManager
+    private lateinit var b :Button
+    private lateinit var g: Button
     private lateinit var userLastLocation: Point
 
     //private var curRoute: List<Point> = null
@@ -108,14 +131,31 @@ class MapFragment : Fragment()
     private var prevPoint: Boolean = false
     private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
     private var floorSelected: Int = 0 //Determines the floor selected (1-3)
+    private lateinit var drawerLayout: DrawerLayout
 
+    // This function handles navigation item selections from a navigation drawer.
+    // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        return true
+    }
+
+    @SuppressLint("IncorrectNumberOfArgumentsInExpression")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        super.onCreate(savedInstanceState)
+        savedInstanceState: Bundle?): View? {
 
+        super.onCreate(savedInstanceState)
+        b = Button(requireContext())
+        b.id = View.generateViewId() // Generate a unique id for the button
+        g= Button(requireContext())
+        g.id = View.generateViewId()
+        g.text="gyroscope"
+        setUpSensor()
+
+        // To start the MQTT Handler -- You must have:
+        // 1. Server containers launched
+        // 2. Connection to UB VPN or UB network
         initMQTTHandler()
 
         // Create a RelativeLayout to hold the MapView
@@ -131,8 +171,32 @@ class MapFragment : Fragment()
         // Set ContentView to the RelativeLayout container
         container.addView(mapView)
 
-
         initManagers()
+
+        // Initialize navigation directions popup
+        initNavigationPopup()
+        val readingbuttons = LinearLayout(requireContext())
+        readingbuttons.id = View.generateViewId() // Generate a unique id for the LinearLayout
+        val paramsButtons = RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.WRAP_CONTENT
+        )
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
+        readingbuttons.orientation = LinearLayout.VERTICAL
+        readingbuttons.layoutParams = paramsButtons
+
+        val buttonParams1 = LinearLayout.LayoutParams(
+            300.dpToPx(),
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        buttonParams1.gravity = Gravity.END
+        b.layoutParams = buttonParams1
+        g.layoutParams
+        readingbuttons.addView(b)
+        readingbuttons.addView(g)
+        container.addView(readingbuttons)
 
         // Initialize navigation directions popup
         initNavigationPopup()
@@ -413,6 +477,7 @@ class MapFragment : Fragment()
         fun hideKeyboard(context: Context, view: View) {
             val inputMethodManager =
                 context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
             searchView.clearFocus()
         }
@@ -448,7 +513,7 @@ class MapFragment : Fragment()
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
                 userQuery = query
-                // requireContext() method will be called when the user submits the query (e.g., by pressing Enter)
+                // This method will be called when the user submits the query (e.g., by pressing Enter)
                 // You can perform your desired action here
                 var sourceLayerId = ""
                 var sourceLabelLayerId = ""
@@ -525,7 +590,7 @@ class MapFragment : Fragment()
             }
 
             override fun onQueryTextChange(newText: String): Boolean {
-                // requireContext() method will be called when the text in the search view changes
+                // This method will be called when the text in the search view changes
                 // You can implement any filtering logic here if needed
                 return false
             }
@@ -642,7 +707,7 @@ class MapFragment : Fragment()
                                 pointAnnotationManager.create(circleMarkerOptions)
                                 prevPoint = true
                             }
-//                        val toast = Toast.makeText(requireContext()@MainActivity, print_m, Toast.LENGTH_LONG).show()
+//                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
                         } else if (f == null || f.size == 0){
 
                             val x = screenPoint.x.toInt()
@@ -836,6 +901,7 @@ class MapFragment : Fragment()
                 })
             }
         }
+
         return container
     }
 
@@ -1458,9 +1524,10 @@ class MapFragment : Fragment()
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe(serverTopic)
         mqttHandler.onMessageReceived = { message ->
-                Log.e("SERVER", message)
+            Log.e("SERVER", message)
         }
     }
+
     private fun publishLocation(point: Point) {
         val lat = point.latitude()
         val long = point.longitude()
@@ -1468,6 +1535,7 @@ class MapFragment : Fragment()
         mqttHandler.publish("test/topic",serverMessage)
     }
     override fun onDestroy() {
+        sensorManager.unregisterListener(this)
         super.onDestroy()
         try {
             mqttHandler.disconnect()
@@ -1480,5 +1548,55 @@ class MapFragment : Fragment()
         val density = Resources.getSystem().displayMetrics.density
         return (this * density).toInt()
     }
-}
+    private fun setUpSensor() {
+        // Use the correct context to get the system service
+        sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also { accelerometer ->
+            sensorManager.registerListener(
+                this,
+                accelerometer,
+                SensorManager.SENSOR_DELAY_NORMAL,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also { gyroscope ->
+            sensorManager.registerListener(
+                this,
+                gyroscope,
+                SensorManager.SENSOR_DELAY_NORMAL,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+    }
+
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="accelerator: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="gyroscope: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
+        return
+    }
+
+}

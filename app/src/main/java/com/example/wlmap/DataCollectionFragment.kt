@@ -1,15 +1,22 @@
 package com.example.wlmap
-
+import LocationPermissionHelper
 import android.R
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
+import android.content.Context.INPUT_METHOD_SERVICE
 import android.content.res.Resources
 import android.graphics.Color
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.MenuItem
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
@@ -23,11 +30,12 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
+import com.mapbox.common.location.Location
 import com.mapbox.common.location.LocationObserver
 import com.mapbox.common.location.LocationProviderRequest
 import com.mapbox.common.location.LocationService
@@ -59,34 +67,47 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
+import java.lang.ref.WeakReference
+import java.math.RoundingMode
+import kotlin.math.round
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+import com.google.android.material.navigation.NavigationView
 
-class DataCollectionFragment : Fragment()
-{
-    private val serverUri = "tcp://128.205.218.189:1883"
-    private val clientId = "Client ID"
-    private val serverTopic = "receive-wl-map"
-    private val STYLE_CUSTOM = "asset://style.json"
+
+class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
+    private val serverUri = "tcp://128.205.218.189:1883" // Server address
+    private val clientId = "Client ID"  // Client ID
+    private val serverTopic = "receive-wl-map"  // ???
+    private val STYLE_CUSTOM = "asset://style.json" // ???
     private val FLOOR1_LAYOUT = "davis01"
     private val FLOOR1_LABELS = "davis01labels"
     private val FLOOR1_DOORS = "davis01doors"
     private val FLOOR3_LABELS = "davis03labels"
     private val FLOOR3_LAYOUT = "davis03"
     private val FLOOR3_DOORS = "davis03doors"
-    private val spinnerOptions = listOf("Select", "All", "Room", "Bathroom", "Staircase", "Elevator")
-    private val LATITUDE = 43.0028
-    private val LONGITUDE = -78.7873
-    private val ZOOM = 17.9
+    private val spinnerOptions = listOf("Select", "All", "Room", "Bathroom", "Staircase", "Elevator") // Drop down options
+    private val LATITUDE = 43.0028 // Starting latitude
+    private val LONGITUDE = -78.7873  // Starting longitude
+    private val ZOOM = 17.9 // Starting zoom
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
 
+
     private lateinit var mqttHandler: MqttHandler
+    private lateinit var locationPermissionHelper: LocationPermissionHelper
     private lateinit var annotationAPI: AnnotationPlugin
     private lateinit var userAnnotationManager: CircleAnnotationManager
     private lateinit var doorAnnotationManager: CircleAnnotationManager
+    private lateinit var pointAnnotationManager: CircleAnnotationManager
     private lateinit var polylineAnnotationManager: PolylineAnnotationManager
     private lateinit var mapView: MapView
     private lateinit var buttonF1: Button
@@ -94,23 +115,48 @@ class DataCollectionFragment : Fragment()
     private lateinit var buttonSendLocation: Button
     private lateinit var buttonConfirmLocation: Button
     private lateinit var popupWindow: PopupWindow
+    private lateinit var latAndlongWindow: PopupWindow
+
+    private lateinit var sensorManager: SensorManager
+    private lateinit var b :Button
+    private lateinit var g: Button
     private lateinit var userLastLocation: Point
 
+    //private var curRoute: List<Point> = null
     private var doorSelected: Point? = null
+    private var pointSelected: Point? = null
     private var circleAnnotationId: CircleAnnotation? = null
     private var prevRoute: PolylineAnnotation? = null
-    private var routeDisplayed: Boolean = false
-    private var prevDoor: Boolean = false
-    private var lastLocation: Pair<Double, Double>? = null
-    private var floorSelected: Int = 0
+    private var routeDisplayed: Boolean = false //Determines if route is being displayed
+    private var prevDoor: Boolean = false //Determines if prevDoor is being displayed
+    private var prevPoint: Boolean = false
+    private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
+    private var floorSelected: Int = 0 //Determines the floor selected (1-3)
+    private lateinit var drawerLayout: DrawerLayout
 
+    // This function handles navigation item selections from a navigation drawer.
+    // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        return true
+    }
+
+    @SuppressLint("IncorrectNumberOfArgumentsInExpression")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        super.onCreate(savedInstanceState)
+        savedInstanceState: Bundle?): View? {
 
+        super.onCreate(savedInstanceState)
+        b = Button(requireContext())
+        b.id = View.generateViewId() // Generate a unique id for the button
+        g= Button(requireContext())
+        g.id = View.generateViewId()
+        g.text="gyroscope"
+        setUpSensor()
+
+        // To start the MQTT Handler -- You must have:
+        // 1. Server containers launched
+        // 2. Connection to UB VPN or UB network
         initMQTTHandler()
 
         // Create a RelativeLayout to hold the MapView
@@ -126,8 +172,37 @@ class DataCollectionFragment : Fragment()
         // Set ContentView to the RelativeLayout container
         container.addView(mapView)
 
-
         initManagers()
+
+        // Add the button that can send the user's location to the server and rate their
+        // confirmation rate.
+        val sendLocationButton = initSendLocation()
+        container.addView(sendLocationButton)
+
+        // Initialize navigation directions popup
+        initNavigationPopup()
+        val readingbuttons = LinearLayout(requireContext())
+        readingbuttons.id = View.generateViewId() // Generate a unique id for the LinearLayout
+        val paramsButtons = RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.WRAP_CONTENT
+        )
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
+        readingbuttons.orientation = LinearLayout.VERTICAL
+        readingbuttons.layoutParams = paramsButtons
+
+        val buttonParams1 = LinearLayout.LayoutParams(
+            300.dpToPx(),
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        buttonParams1.gravity = Gravity.END
+        b.layoutParams = buttonParams1
+        g.layoutParams
+        readingbuttons.addView(b)
+        readingbuttons.addView(g)
+        container.addView(readingbuttons)
 
         // Initialize navigation directions popup
         initNavigationPopup()
@@ -135,11 +210,6 @@ class DataCollectionFragment : Fragment()
         // Initializing floor selector and adding to ContentView container
         val floorLevelButtons = initFloorSelector()
         container.addView(floorLevelButtons)
-
-        // Add the button that can send the user's location to the server and rate their
-        // confirmation rate.
-        val sendLocationButton = initSendLocation()
-        container.addView(sendLocationButton)
 
         // Initializing drop down spinner and adding to ContentView container
         val spinner = initRoomSelector()
@@ -181,7 +251,7 @@ class DataCollectionFragment : Fragment()
                             layerf3?.fillColor("#7e7c77")
                             symbolLayer?.textColor(Color.parseColor("#000000"))
                         }
-                    } else if (floorSelected == 1) {
+                    }else if (floorSelected == 1){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -191,12 +261,7 @@ class DataCollectionFragment : Fragment()
                             val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
                             symbolLayer?.textOpacity(1.0)
                             symbolLayer?.textAllowOverlap(true)
-                            symbolLayer?.filter(
-                                Expression.neq(
-                                    Expression.literal(""),
-                                    Expression.literal("")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.neq(Expression.literal(""), Expression.literal("")))
                             symbolLayer?.textField(
                                 Expression.get("name"), // Existing text
                             )
@@ -217,8 +282,7 @@ class DataCollectionFragment : Fragment()
                             layerf3?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("room"),
-                                    Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
+                                    Expression.literal("room"), Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
@@ -227,14 +291,9 @@ class DataCollectionFragment : Fragment()
 //                                Expression.get("name"), // Existing text
 //                                Expression.literal(" room") // Additional string
 //                            ))
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("room"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
                         }
-                    } else if (floorSelected == 1) {
+                    }else if (floorSelected == 1){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf1 = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
                             // Update layer properties
@@ -247,8 +306,7 @@ class DataCollectionFragment : Fragment()
                             layerf1?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("room"),
-                                    Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
+                                    Expression.literal("room"), Expression.color(Color.parseColor("#A020F0")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
@@ -256,18 +314,13 @@ class DataCollectionFragment : Fragment()
 //                                Expression.get("name"), // Existing text
 //                                Expression.literal(" ROOM") // Additional string
 //                            ))
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("room"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
 
                         }
                     }
 
-                } else if (spinnerOptions[position] == "Bathroom") {
-                    if (floorSelected == 3) {
+                }else if(spinnerOptions[position] == "Bathroom"){
+                    if (floorSelected == 3){
                         mapView.mapboxMap.getStyle { style ->
                             val layerf3 = style.getLayerAs<FillLayer>(FLOOR3_LAYOUT)
                             // Update layer properties
@@ -280,17 +333,11 @@ class DataCollectionFragment : Fragment()
                             layerf3?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("bathroom"),
-                                    Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
+                                    Expression.literal("bathroom"), Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("bathroom"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
 
                         }
                     } else if (floorSelected == 1) {
@@ -306,17 +353,11 @@ class DataCollectionFragment : Fragment()
                             layerf1?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("bathroom"),
-                                    Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
+                                    Expression.literal("bathroom"), Expression.color(Color.parseColor("#006400")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("bathroom"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("bathroom"), Expression.get("type")))
 
                         }
                     }
@@ -334,17 +375,11 @@ class DataCollectionFragment : Fragment()
                             layerf3?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("stairwell"),
-                                    Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
+                                    Expression.literal("stairwell"), Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("stairwell"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
                         }
                     } else if (floorSelected == 1) {
                         mapView.mapboxMap.getStyle { style ->
@@ -359,17 +394,11 @@ class DataCollectionFragment : Fragment()
                             layerf1?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("stairwell"),
-                                    Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
+                                    Expression.literal("stairwell"), Expression.color(Color.parseColor("#ADD8E6")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("stairwell"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("stairwell"), Expression.get("type")))
                         }
                     }
                 } else if (spinnerOptions[position] == "Elevator") {
@@ -386,17 +415,11 @@ class DataCollectionFragment : Fragment()
                             layerf3?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("elevator"),
-                                    Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
+                                    Expression.literal("elevator"), Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("elevator"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
                         }
                     } else if (floorSelected == 1) {
                         mapView.mapboxMap.getStyle { style ->
@@ -411,17 +434,11 @@ class DataCollectionFragment : Fragment()
                             layerf1?.fillColor(
                                 Expression.match(
                                     Expression.get("type"), // Attribute to match
-                                    Expression.literal("elevator"),
-                                    Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
+                                    Expression.literal("elevator"), Expression.color(Color.parseColor("#C4A484")), // Color for "room" polygons
                                     Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                                 )
                             )
-                            symbolLayer?.filter(
-                                Expression.eq(
-                                    Expression.literal("elevator"),
-                                    Expression.get("type")
-                                )
-                            )
+                            symbolLayer?.filter(Expression.eq(Expression.literal("elevator"), Expression.get("type")))
                         }
                     }
                 }
@@ -445,8 +462,7 @@ class DataCollectionFragment : Fragment()
             .getIdentifier("android:id/search_src_text", null, null)
         val closeButtonId = searchView.context.resources
             .getIdentifier("android:id/search_close_btn", null, null)
-        val magnifyId =
-            searchView.context.resources.getIdentifier("android:id/search_mag_icon", null, null)
+        val magnifyId = searchView.context.resources.getIdentifier("android:id/search_mag_icon",null,null)
         val magnifyView = searchView.findViewById<View>(magnifyId) as ImageView
         magnifyView.setColorFilter(Color.WHITE)
         val buttonView = searchView.findViewById<View>(closeButtonId) as ImageView
@@ -467,6 +483,7 @@ class DataCollectionFragment : Fragment()
         fun hideKeyboard(context: Context, view: View) {
             val inputMethodManager =
                 context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
             searchView.clearFocus()
         }
@@ -475,11 +492,11 @@ class DataCollectionFragment : Fragment()
             var lon = 0.0
             var lat = 0.0
             val len = polygon.coordinates()[0].size
-            for (coordinate in polygon.coordinates()[0]) {
-                lon += coordinate.longitude()
-                lat += coordinate.latitude()
+            for (coordinate in polygon.coordinates()[0]){
+                lon+=coordinate.longitude()
+                lat+=coordinate.latitude()
             }
-            return Point.fromLngLat(lon / len, lat / len)
+            return Point.fromLngLat(lon/len,lat/len)
 
         }
 
@@ -497,12 +514,12 @@ class DataCollectionFragment : Fragment()
             }
         }
 
-        var userQuery = ""
+        var userQuery = "" //Global variable that holds user search query (Room number)
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
                 userQuery = query
-                // requireContext() method will be called when the user submits the query (e.g., by pressing Enter)
+                // This method will be called when the user submits the query (e.g., by pressing Enter)
                 // You can perform your desired action here
                 var sourceLayerId = ""
                 var sourceLabelLayerId = ""
@@ -511,7 +528,7 @@ class DataCollectionFragment : Fragment()
                     sourceLayerId = FLOOR1_LAYOUT
                     sourceLabelLayerId = FLOOR1_LABELS
                     sourceLayerDoorId = FLOOR1_DOORS
-                } else if (floorSelected == 3) {
+                }else if (floorSelected == 3){
                     sourceLayerId = FLOOR3_LAYOUT
                     sourceLabelLayerId = FLOOR3_LABELS
                     sourceLayerDoorId = FLOOR3_DOORS
@@ -528,8 +545,7 @@ class DataCollectionFragment : Fragment()
                     layer?.fillColor(
                         Expression.match(
                             Expression.get("name"), // Attribute to match
-                            Expression.literal(query),
-                            Expression.color(Color.parseColor("#39ff14")), // Color for "room" polygons
+                            Expression.literal(query), Expression.color(Color.parseColor("#39ff14")), // Color for "room" polygons
                             Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                         )
                     )
@@ -543,14 +559,12 @@ class DataCollectionFragment : Fragment()
                         .bearing(0.0)
                         .build()
                 )
-                val visibleBounds = mapView.mapboxMap.coordinateBoundsForCamera(
-                    CameraOptions.Builder()
-                        .center(Point.fromLngLat(LONGITUDE, LATITUDE))
-                        .pitch(0.0)
-                        .zoom(ZOOM)
-                        .bearing(0.0)
-                        .build()
-                )
+                val visibleBounds = mapView.mapboxMap.coordinateBoundsForCamera(CameraOptions.Builder()
+                    .center(Point.fromLngLat(LONGITUDE, LATITUDE))
+                    .pitch(0.0)
+                    .zoom(ZOOM)
+                    .bearing(0.0)
+                    .build())
 
                 val screenPoint1 = mapView.mapboxMap.pixelForCoordinate(visibleBounds.northwest())
                 val screenPoint2 = mapView.mapboxMap.pixelForCoordinate(visibleBounds.southeast())
@@ -559,22 +573,13 @@ class DataCollectionFragment : Fragment()
 
                 // Create a RenderedQueryGeometry from the visible area geometry
                 val renderedQueryGeometry = RenderedQueryGeometry(visibleAreaPolygon)
-                val renderedQueryOptions = RenderedQueryOptions(
-                    listOf(sourceLayerId),
-                    Expression.eq(Expression.get("name"), Expression.literal(query))
-                )
-                mapView.mapboxMap.queryRenderedFeatures(
-                    renderedQueryGeometry,
-                    renderedQueryOptions
-                ) { features ->
+                val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.eq(Expression.get("name"), Expression.literal(query)))
+                mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features ->
                     if (features.isValue) {
                         val f = features.value
                         if (f != null && f.size > 0) {
                             val room = f[0].queriedFeature.feature.geometry() as Polygon
-                            Log.d(
-                                "DEBUG",
-                                f[0].queriedFeature.feature.getProperty("name").toString()
-                            )
+                            Log.d("DEBUG",f[0].queriedFeature.feature.getProperty("name").toString())
                             val center = calculateCentroid(room)
                             mapView.mapboxMap.flyTo(
                                 CameraOptions.Builder()
@@ -591,12 +596,13 @@ class DataCollectionFragment : Fragment()
             }
 
             override fun onQueryTextChange(newText: String): Boolean {
-                // requireContext() method will be called when the text in the search view changes
+                // This method will be called when the text in the search view changes
                 // You can implement any filtering logic here if needed
                 return false
             }
         })
-        
+
+
 
         mapView.mapboxMap.addOnMapClickListener { point ->
             var sourceLayerId = ""
@@ -620,7 +626,7 @@ class DataCollectionFragment : Fragment()
                     sourceLayerId = FLOOR1_LAYOUT
                     sourceLabelLayerId = FLOOR1_LABELS
                     sourceLayerDoorId = FLOOR1_DOORS
-                } else if (floorSelected == 3) {
+                }else if (floorSelected == 3) {
                     sourceLayerId = FLOOR3_LAYOUT
                     sourceLabelLayerId = FLOOR3_LABELS
                     sourceLayerDoorId = FLOOR3_DOORS
@@ -641,8 +647,7 @@ class DataCollectionFragment : Fragment()
                 layer?.fillColor(
                     Expression.match(
                         Expression.get("name"), // Attribute to match
-                        Expression.literal(userQuery),
-                        Expression.color(Color.parseColor("#7e7c77")), // Color for "room" polygons
+                        Expression.literal(userQuery), Expression.color(Color.parseColor("#7e7c77")), // Color for "room" polygons
                         Expression.color(Color.parseColor("#7e7c77")) // Default color for other polygons
                     )
                 )
@@ -652,49 +657,93 @@ class DataCollectionFragment : Fragment()
             val screenPoint = mapView.mapboxMap.pixelForCoordinate(point)
             val renderedQueryGeometry = RenderedQueryGeometry(screenPoint)
             val currentLayer = floorSelected
-            if (currentLayer != 0) {
-                if (currentLayer == 3) {
+            if (currentLayer != 0){
+                if (currentLayer == 3){
                     sourceLayerId = FLOOR3_LAYOUT
-                } else if (currentLayer == 1) {
+                }else if(currentLayer == 1){
                     sourceLayerId = FLOOR1_LAYOUT
                 }
-                val renderedQueryOptions = RenderedQueryOptions(
-                    listOf(sourceLayerId),
-                    Expression.neq(Expression.literal(""), Expression.literal(""))
-                )
-                mapView.mapboxMap.queryRenderedFeatures(
-                    renderedQueryGeometry,
-                    renderedQueryOptions
-                ) { features ->
-                    if (features.isValue) {
+                val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.neq(Expression.literal(""), Expression.literal("")))
+                mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features->
+                    if (features.isValue){
                         val f = features.value
                         if (f != null && f.size > 0) {
                             val featureString = f[0].toString()
                             Log.d("DEBUG", featureString)
                             val propertiesIndex = featureString.indexOf("properties")
                             if (propertiesIndex != -1) {
-                                var restOfTheString = featureString.substring(propertiesIndex + 12)
+                                var restOfTheString = featureString.substring(propertiesIndex+12)
                                 val bracketIndex = restOfTheString.indexOf("}")
                                 if (bracketIndex != -1) {
                                     restOfTheString = restOfTheString.substring(0, bracketIndex)
                                 }
-                                val finalString =
-                                    restOfTheString.replace("\"", "").replace(",", ", ")
-                                        .replace(":", ": ")
-                                Toast.makeText(requireContext(), finalString, Toast.LENGTH_SHORT)
-                                    .show()
+                                val finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
+                                Toast.makeText(requireContext(), finalString, Toast.LENGTH_SHORT ).show()
 
                                 // Directions navigation popup on room click
                                 val x = screenPoint.x.toInt()
                                 val y = screenPoint.y.toInt()
 
-                                getClosestDoor(point, currentLayer)
+                                //point the user selected
+                                pointSelected = point
+
+                                getClosestDoor(point,currentLayer) //Gets closest door and marks it with a circle
 
                                 popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
-                            }
-//                        val toast = Toast.makeText(requireContext()@MainActivity, print_m, Toast.LENGTH_LONG).show()
-                        } else {
 
+                                var latitude = pointSelected!!.latitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert latitude to a string rounded to the fourth decimal
+                                var longitude = pointSelected!!.longitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert longitude to a string rounded to the fourth decimal
+
+                                val positionText = "(" + latitude + ", " + longitude + ")" //Set position text to the lat/long strings
+                                initLatLongPopup(positionText) //Initialize the lat/long popup message with the positionText string
+                                latAndlongWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y-100) //Show the lat/long popup message above the "Get Directions" popup
+
+
+                                //Delete previously placed circles
+                                pointAnnotationManager.deleteAll()
+
+                                val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+                                    .withPoint(pointSelected!!)
+                                    .withCircleColor("#ffcf40") // Match the color with the polyline
+                                    .withCircleRadius(7.0) // Set the radius of the circle
+                                    .withCircleOpacity(1.0) // Set the opacity of the circle
+                                    .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+
+                                //create the circle on the user-selected point
+                                pointAnnotationManager.create(circleMarkerOptions)
+                                prevPoint = true
+                            }
+//                        val toast = Toast.makeText(this@MainActivity, print_m, Toast.LENGTH_LONG).show()
+                        } else if (f == null || f.size == 0){
+
+                            val x = screenPoint.x.toInt()
+                            val y = screenPoint.y.toInt()
+
+                            //point the user selected
+                            pointSelected = point
+
+                            popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
+
+                            var latitude = pointSelected!!.latitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert latitude to a string rounded to the fourth decimal
+                            var longitude = pointSelected!!.longitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert longitude to a string rounded to the fourth decimal
+
+                            val positionText = "(" + latitude + ", " + longitude + ")" //Set position text to the lat/long strings
+                            initLatLongPopup(positionText) //Initialize the lat/long popup message with the positionText string
+                            latAndlongWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y-100) //Show the lat/long popup message above the "Get Directions" popup
+
+                            //Delete previously placed circles
+                            pointAnnotationManager.deleteAll()
+
+                            val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+                                .withPoint(pointSelected!!)
+                                .withCircleColor("#ffcf40") // Match the color with the polyline
+                                .withCircleRadius(7.0) // Set the radius of the circle
+                                .withCircleOpacity(1.0) // Set the opacity of the circle
+                                .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+
+                            //create the circle on the user-selected point
+                            pointAnnotationManager.create(circleMarkerOptions)
+                            prevPoint = true
                             /*
                             mapView.mapboxMap.flyTo(
                                 CameraOptions.Builder()
@@ -716,14 +765,19 @@ class DataCollectionFragment : Fragment()
         buttonF1.setOnClickListener {
             floorSelected = 1
 
-            if (routeDisplayed) {
+            if (routeDisplayed) { //If a route is already being displayed, delete the route and reset the routeDisplayed boolean
                 polylineAnnotationManager.deleteAll()
                 routeDisplayed = false
             }
 
-            if (prevDoor) {
+            if (prevDoor) { //If a door is already being marked, delete the circle on the door and reset the prevDoor boolean
                 doorAnnotationManager.deleteAll()
                 prevDoor = false
+            }
+
+            if (prevPoint) { //If a point is already being marked, delete the circle on the point and reset the prevPoint boolean
+                pointAnnotationManager.deleteAll()
+                prevPoint = false
             }
 
             mapView.mapboxMap.getStyle { style ->
@@ -781,17 +835,23 @@ class DataCollectionFragment : Fragment()
             }
         }
 
+
         buttonF3.setOnClickListener {
             floorSelected = 3
 
-            if (routeDisplayed) {
+            if (routeDisplayed) { //If a route is already being displayed, delete the route and reset the routeDisplayed boolean
                 polylineAnnotationManager.deleteAll()
                 routeDisplayed = false
             }
 
-            if (prevDoor) {
+            if (prevDoor) { //If a door is already being marked, delete the circle on the door and reset the prevDoor boolean
                 doorAnnotationManager.deleteAll()
                 prevDoor = false
+            }
+
+            if (prevPoint) { //If a point is already being marked, delete the circle on the point and reset the prevPoint boolean
+                pointAnnotationManager.deleteAll()
+                prevPoint = false
             }
 
             mapView.mapboxMap.getStyle { style ->
@@ -858,7 +918,7 @@ class DataCollectionFragment : Fragment()
             val showPopUp = RateConfidenceFragment()
             showPopUp.show((activity as AppCompatActivity).supportFragmentManager, "showPopUp")
         }
-        
+
         return container
     }
 
@@ -867,6 +927,7 @@ class DataCollectionFragment : Fragment()
         polylineAnnotationManager = annotationAPI.createPolylineAnnotationManager()
         userAnnotationManager = annotationAPI.createCircleAnnotationManager()
         doorAnnotationManager = annotationAPI.createCircleAnnotationManager()
+        pointAnnotationManager = annotationAPI.createCircleAnnotationManager()
     }
 
     private fun userLocationPuck() {
@@ -940,6 +1001,34 @@ class DataCollectionFragment : Fragment()
             setBackgroundDrawable(null)
         }
     }
+
+    private fun initLatLongPopup(positionText: String) {
+        // Create the button programmatically with an icon next to the text
+        if (pointSelected != null){
+            val button = Button(requireContext()).apply {
+                text = positionText
+                // Set the icon to the left of the text
+//                setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_directions, 0)
+//                setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
+                setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_compass, 0)
+                setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
+                setOnClickListener {
+                    latAndlongWindow.dismiss()
+                }
+            }
+
+            // Initialize the PopupWindow (assuming you have a PopupWindow instance)
+            latAndlongWindow = PopupWindow(requireContext()).apply {
+                width = LinearLayout.LayoutParams.WRAP_CONTENT
+                height = LinearLayout.LayoutParams.WRAP_CONTENT
+                isFocusable = true
+                contentView = button
+                setBackgroundDrawable(null)
+            }
+
+        }
+    }
+
 
     private fun initRoomSelector(): Spinner {
         // Create a Spinner
@@ -1031,10 +1120,10 @@ class DataCollectionFragment : Fragment()
     }
 
     /*
-    * Create two buttons:
-    * 1. Send the user's location to the server
-    * 2. Ask the user their confidence score.
-    * */
+   * Create two buttons:
+   * 1. Send the user's location to the server
+   * 2. Ask the user their confidence score.
+   * */
     private fun initSendLocation(): LinearLayout {
         // Create a LinearLayout to hold the buttons
         val sendLocationButtons = LinearLayout(requireContext())
@@ -1045,7 +1134,7 @@ class DataCollectionFragment : Fragment()
         )
         paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
         paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
-        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 180.dpToPx())
         sendLocationButtons.orientation = LinearLayout.VERTICAL
         sendLocationButtons.layoutParams = paramsButtons
 
@@ -1227,46 +1316,135 @@ class DataCollectionFragment : Fragment()
 //            circleAnnotationManager.create(circleMarkerOptions)
 //        }
 
-        navGraph.walkPoints = grabWalk(navGraph)
+        if (doorSelected != null)
+        {
+            navGraph.walkPoints = grabWalk(navGraph)
 
-        mapView.mapboxMap.getStyle { style ->
-            // Get an existing layer by referencing its
-            // unique layer ID (LAYER_ID)
-            val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
-            // Update layer properties
-            layer?.fillOpacity(1.0)
-            val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
-            doorLayer?.iconOpacity(0.0)
-            // Add symbol layer for floor 3 labels
-            val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
-            symbolLayer?.textOpacity(1.0)
-        }
+            mapView.mapboxMap.getStyle { style ->
+                // Get an existing layer by referencing its
+                // unique layer ID (LAYER_ID)
+                val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                // Update layer properties
+                layer?.fillOpacity(1.0)
+                val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                doorLayer?.iconOpacity(0.0)
+                // Add symbol layer for floor 3 labels
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
+                symbolLayer?.textOpacity(1.0)
+            }
 
-        val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
-        navGraph.addEdge(nearestUserPoint,userLastLocation)
+            userLastLocation = testUserLocation //Test for user location
 
-        val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
-        navGraph.addEdge(nearestDoorPoint,doorSelected!!)
+            //Obtain the nearest point to the user and add the edge to navGraph
+            val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
+            navGraph.addEdge(nearestUserPoint,userLastLocation)
 
-        if (routeDisplayed) {
-            Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
-            polylineAnnotationManager.delete(prevRoute!!)
+            val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
+            navGraph.addEdge(nearestDoorPoint,doorSelected!!)
+
+            val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,pointSelected!!)
+            navGraph.addEdge(nearestPoint,pointSelected!!)
+
+            //A list that connects a path from the door point to the point selected within the room
+            val door_to_roomPoint: List<Point> = listOf(doorSelected!!, pointSelected!!)
+
+
+            if (routeDisplayed) {
+                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+                polylineAnnotationManager.deleteAll()
+
+            } else {
+                Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+            }
+
+            //Draws a path from the user location to the door
+            val polylineAnnotationOptions_1: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                .withPoints(navGraph.calcRoute(userLastLocation, doorSelected!!))
+                // Style the line that will be added to the map.
+                .withLineColor("#0f53ff")
+                .withLineWidth(6.3)
+                .withLineJoin(LineJoin.ROUND)
+                .withLineSortKey(0.0)
+
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions_1)
+
+            //Obtain the nearest point to the user-selected point and add the edge to navGraph
+
+            //Draws a path from the door to the point selected by the user
+            val polylineAnnotationOptions_2 = PolylineAnnotationOptions()
+                .withPoints(door_to_roomPoint)
+                // Style the line that will be added to the map.
+                .withLineColor("#0f53ff")
+                .withLineWidth(6.3)
+                .withLineJoin(LineJoin.ROUND)
+                .withLineSortKey(0.0)
+
+            // Add the resulting line to the map.
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions_2)
+            routeDisplayed = true
+            doorSelected = null
+            return
 
         } else {
-            Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+            navGraph.walkPoints = grabWalk(navGraph)
+
+            mapView.mapboxMap.getStyle { style ->
+                // Get an existing layer by referencing its
+                // unique layer ID (LAYER_ID)
+                val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
+                // Update layer properties
+                layer?.fillOpacity(1.0)
+                val doorLayer = style.getLayerAs<SymbolLayer>(FLOOR1_DOORS)
+                doorLayer?.iconOpacity(0.0)
+                // Add symbol layer for floor 3 labels
+                val symbolLayer = style.getLayerAs<SymbolLayer>(FLOOR1_LABELS)
+                symbolLayer?.textOpacity(1.0)
+            }
+
+            userLastLocation = testUserLocation //Test for user location
+
+            //Obtain the nearest point to the user and add the edge to navGraph
+            val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
+            navGraph.addEdge(nearestUserPoint,userLastLocation)
+
+            //Obtain the nearest point to the user-selected point and add the edge to navGraph
+            val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,pointSelected!!)
+            navGraph.addEdge(nearestPoint,pointSelected!!)
+
+
+            if (routeDisplayed) {
+                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+                polylineAnnotationManager.deleteAll()
+
+            } else {
+                Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+            }
+
+
+
+            val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                .withPoints(navGraph.calcRoute(userLastLocation, pointSelected!!))
+                // Style the line that will be added to the map.
+                .withLineColor("#0f53ff")
+                .withLineWidth(6.3)
+                .withLineJoin(LineJoin.ROUND)
+                .withLineSortKey(0.0)
+
+            // Add the resulting line to the map.
+
+
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
+            routeDisplayed = true
+            pointSelected = null
+
+
+
+
+
+
         }
 
-        val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-            .withPoints(navGraph.calcRoute(userLastLocation, doorSelected!!))
-            // Style the line that will be added to the map.
-            .withLineColor("#0f53ff")
-            .withLineWidth(6.3)
-            .withLineJoin(LineJoin.ROUND)
-            .withLineSortKey(0.0)
 
-        // Add the resulting line to the map.
-        prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
-        routeDisplayed = true
 
     }
 
@@ -1386,16 +1564,15 @@ class DataCollectionFragment : Fragment()
                                         doorAnnotationManager.deleteAll()
                                     }
                                     // Create a circle marker for each point
-                                    val circleMarkerOptions: CircleAnnotationOptions =
-                                        CircleAnnotationOptions()
-                                            .withPoint(door)
-                                            .withCircleColor("#ffcf40") // Match the color with the polyline
-                                            .withCircleRadius(7.0) // Set the radius of the circle
-                                            .withCircleOpacity(1.0) // Set the opacity of the circle
-                                            .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
-
-                                    // Add the circle marker to the map
-                                    doorAnnotationManager.create(circleMarkerOptions)
+//                                    val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+//                                        .withPoint(door)
+//                                        .withCircleColor("#ffcf40") // Match the color with the polyline
+//                                        .withCircleRadius(7.0) // Set the radius of the circle
+//                                        .withCircleOpacity(1.0) // Set the opacity of the circle
+//                                        .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+//
+//                                    // Add the circle marker to the map
+//                                    doorAnnotationManager.create(circleMarkerOptions)
                                     prevDoor = true
                                 }
                             }
@@ -1426,6 +1603,7 @@ class DataCollectionFragment : Fragment()
             Log.e("SERVER", message)
         }
     }
+
     private fun publishLocation(point: Point) {
         val lat = point.latitude()
         val long = point.longitude()
@@ -1433,6 +1611,7 @@ class DataCollectionFragment : Fragment()
         mqttHandler.publish("test/topic",serverMessage)
     }
     override fun onDestroy() {
+        sensorManager.unregisterListener(this)
         super.onDestroy()
         try {
             mqttHandler.disconnect()
@@ -1445,4 +1624,55 @@ class DataCollectionFragment : Fragment()
         val density = Resources.getSystem().displayMetrics.density
         return (this * density).toInt()
     }
+    private fun setUpSensor() {
+        // Use the correct context to get the system service
+        sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
+
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also { accelerometer ->
+            sensorManager.registerListener(
+                this,
+                accelerometer,
+                SensorManager.SENSOR_DELAY_NORMAL,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also { gyroscope ->
+            sensorManager.registerListener(
+                this,
+                gyroscope,
+                SensorManager.SENSOR_DELAY_NORMAL,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+    }
+
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="accelerator: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="gyroscope: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
+        return
+    }
+
 }
