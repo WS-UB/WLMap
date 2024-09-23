@@ -1,5 +1,4 @@
 package com.example.wlmap
-
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -11,7 +10,6 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 class MqttHandler {
     private var client: MqttClient? = null
     var onMessageReceived: ((String) -> Unit)? = null
-
 
     fun connect(brokerUrl: String?, clientId: String?) {
         try {
@@ -32,6 +30,7 @@ class MqttHandler {
                 }
 
                 override fun messageArrived(topic: String?, message: MqttMessage?) {
+
                     val data = message.toString().split(",")  // Assuming the format is "latitude,longitude"
                     val latitude = data[0].toDouble()
                     val longitude = data[1].toDouble()
@@ -41,6 +40,11 @@ class MqttHandler {
                 }
 
 
+                    // Handle incoming messages
+                    onMessageReceived?.invoke(message.toString())
+                    println("Message received: ${message?.toString()}")
+                }
+
                 override fun deliveryComplete(token: IMqttDeliveryToken?) {
                     // Handle completed delivery
                 }
@@ -48,7 +52,9 @@ class MqttHandler {
 
             client!!.connect(connectOptions)
 
+
             client?.subscribe("coordinates/topic")
+
 
         } catch (e: MqttException) {
             e.printStackTrace()
@@ -79,5 +85,4 @@ class MqttHandler {
             e.printStackTrace()
         }
     }
-
 }

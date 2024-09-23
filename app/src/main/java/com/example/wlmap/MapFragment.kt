@@ -4,12 +4,20 @@ import android.R
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
+import android.content.Context.INPUT_METHOD_SERVICE
+import android.content.Context.SENSOR_SERVICE
 import android.content.res.Resources
 import android.graphics.Color
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
+import android.view.MenuItem
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
@@ -23,6 +31,7 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
@@ -58,21 +67,25 @@ import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManag
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
-import org.eclipse.paho.client.mqttv3.MqttCallback
-import org.eclipse.paho.client.mqttv3.MqttClient
-import org.eclipse.paho.client.mqttv3.MqttMessage
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.MqttException
 import java.lang.ref.WeakReference
+import java.math.RoundingMode
+import kotlin.math.round
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+import com.google.android.material.navigation.NavigationView
 
 
-class MainActivity : AppCompatActivity() {
+class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
     private val serverUri = "tcp://128.205.218.189:1883" // Server address
     private val clientId = "Client ID"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
@@ -89,9 +102,8 @@ class MainActivity : AppCompatActivity() {
     private val ZOOM = 17.9 // Starting zoom
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
 
+
     private lateinit var mqttHandler: MqttHandler
-    private lateinit var receivedMessageTextView: TextView
-    private lateinit var mqttClient: MqttClient
     private lateinit var locationPermissionHelper: LocationPermissionHelper
     private lateinit var annotationAPI: AnnotationPlugin
     private lateinit var userAnnotationManager: CircleAnnotationManager
@@ -102,6 +114,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonF1: Button
     private lateinit var buttonF3: Button
     private lateinit var popupWindow: PopupWindow
+    private lateinit var latAndlongWindow: PopupWindow
+
+    private lateinit var sensorManager: SensorManager
+    private lateinit var b :Button
+    private lateinit var g: Button
     private lateinit var userLastLocation: Point
 
     //private var curRoute: List<Point> = null
@@ -114,68 +131,36 @@ class MainActivity : AppCompatActivity() {
     private var prevPoint: Boolean = false
     private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
     private var floorSelected: Int = 0 //Determines the floor selected (1-3)
-
-import android.os.Bundle
-import android.view.MenuItem
-import android.widget.Toast
-import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.fragment.app.FragmentTransaction
-import com.google.android.material.navigation.NavigationView
-
-
-class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelectedListener {
     private lateinit var drawerLayout: DrawerLayout
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        receivedMessageTextView = findViewById(R.id.receivedMessageTextView)
-
-        setupMqttClient()
-    }
-
-    private fun setupMqttClient() {
-        val brokerUrl = "tcp://YOUR_SERVER_URL:1883"
-        val clientId = "AndroidClient"
-
-        mqttClient = MqttClient(brokerUrl, clientId, MemoryPersistence())
-        mqttClient.setCallback(object : MqttCallback {
-            override fun connectionLost(cause: Throwable?) {
-                // Handle connection loss
-            }
-
-            override fun messageArrived(topic: String?, message: MqttMessage?) {
-                runOnUiThread {
-                    message?.let {
-                        receivedMessageTextView.text = "Received message: ${String(it.payload)}"
-                    }
-                }
-            }
-
-            override fun deliveryComplete(token: IMqttDeliveryToken?) {
-                // Delivery complete callback (for when sending messages, not relevant for receiving)
-            }
-        })
-
-        mqttClient.connect()
-        mqttClient.subscribe("YOUR_TOPIC")
+    // This function handles navigation item selections from a navigation drawer.
+    // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        return true
     }
 
     @SuppressLint("IncorrectNumberOfArgumentsInExpression")
-    private fun onMapReady() {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?): View? {
+
+        super.onCreate(savedInstanceState)
+        b = Button(requireContext())
+        b.id = View.generateViewId() // Generate a unique id for the button
+        g= Button(requireContext())
+        g.id = View.generateViewId()
+        g.text="gyroscope"
+        setUpSensor()
+
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
         // 2. Connection to UB VPN or UB network
         initMQTTHandler()
 
         // Create a RelativeLayout to hold the MapView
-        val container = RelativeLayout(this)
-        mapView = MapView(this)
+        val container = RelativeLayout(requireContext())
+        mapView = MapView(requireContext())
 
         // Start user LocationPuck plotting on and launching user NavigationRouting mapView
         userLocationPuck()
@@ -185,9 +170,33 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
 
         // Set ContentView to the RelativeLayout container
         container.addView(mapView)
-        setContentView(container)
 
         initManagers()
+
+        // Initialize navigation directions popup
+        initNavigationPopup()
+        val readingbuttons = LinearLayout(requireContext())
+        readingbuttons.id = View.generateViewId() // Generate a unique id for the LinearLayout
+        val paramsButtons = RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.WRAP_CONTENT
+        )
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+        paramsButtons.addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+        paramsButtons.setMargins(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 80.dpToPx())
+        readingbuttons.orientation = LinearLayout.VERTICAL
+        readingbuttons.layoutParams = paramsButtons
+
+        val buttonParams1 = LinearLayout.LayoutParams(
+            300.dpToPx(),
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        buttonParams1.gravity = Gravity.END
+        b.layoutParams = buttonParams1
+        g.layoutParams
+        readingbuttons.addView(b)
+        readingbuttons.addView(g)
+        container.addView(readingbuttons)
 
         // Initialize navigation directions popup
         initNavigationPopup()
@@ -301,47 +310,8 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
 //                            ))
                             symbolLayer?.filter(Expression.eq(Expression.literal("room"), Expression.get("type")))
 
-        // Set the layout for the activity. This loads the 'activity_main' layout resource.
-        setContentView(com.example.wlmap.R.layout.activity_main)
-
-        // Find the DrawerLayout by its ID and assign it to 'drawerLayout'.
-        drawerLayout = findViewById(com.example.wlmap.R.id.drawer_layout)
-
-        // Find the Toolbar by its ID and assign it to 'toolbar'.
-        val toolbar = findViewById<Toolbar>(com.example.wlmap.R.id.toolbar)
-
-        // Set the toolbar as the app's ActionBar, allowing it to function like a standard action bar.
-        setSupportActionBar(toolbar)
-
-        // Find the NavigationView (the menu within the drawer) by its ID and assign it to 'homeScreen'.
-        // The 'setNavigationItemSelectedListener' sets the current activity as the listener for menu item selections.
-        val homeScreen = findViewById<NavigationView>(com.example.wlmap.R.id.nav_view)
-        homeScreen.setNavigationItemSelectedListener(this)
-
-        // Create an ActionBarDrawerToggle to handle the opening and closing of the navigation drawer.
-        // The toggle binds the drawer, the activity (this), and the toolbar, and sets labels for open and close states.
-        val toggle = ActionBarDrawerToggle(this, drawerLayout, toolbar, com.example.wlmap.R.string.open_home, com.example.wlmap.R.string.close_home)
-        drawerLayout.addDrawerListener(toggle)
-        toggle.syncState()
-
-
-        // Check if the activity is being recreated (such as after a screen rotation) by checking if 'savedInstanceState' is null.
-        // If it's null, it means the activity is newly created, so we should initialize the home fragment and set the default menu item.
-        if (savedInstanceState == null) {
-            // Replace the current fragment with the HomeFragment.
-            replaceFragment(HomeFragment())
-            // Set the "Home" menu item as checked by default in the navigation drawer.
-            homeScreen.setCheckedItem(com.example.wlmap.R.id.nav_home)
-        }
-    }
-
-
-    // This function handles navigation item selections from a navigation drawer.
-    // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        when(item.itemId){
-            // If the "Home" item is selected, replace the current fragment with 'HomeFragment'.
-            com.example.wlmap.R.id.nav_home -> supportFragmentManager.beginTransaction().replace(com.example.wlmap.R.id.fragment_container, HomeFragment()).commit()
+                        }
+                    }
 
                 }else if(spinnerOptions[position] == "Bathroom"){
                     if (floorSelected == 3){
@@ -468,27 +438,11 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
                 }
             }
 
-            // If the "WLMap" item is selected, we run the interactive map.
-            com.example.wlmap.R.id.nav_wlmap -> supportFragmentManager.beginTransaction().replace(
-                com.example.wlmap.R.id.fragment_container, MapFragment()).commit()
-
-            // If the "Data" item is selected, replace the current fragment with 'SendDataFragment'.
-            com.example.wlmap.R.id.nav_data -> supportFragmentManager.beginTransaction().replace(com.example.wlmap.R.id.fragment_container, SendDataFragment()).commit()
-
-            // If the "Settings" item is selected, replace the current fragment with 'SettingsFragment'.
-            com.example.wlmap.R.id.nav_setting -> supportFragmentManager.beginTransaction().replace(
-                com.example.wlmap.R.id.fragment_container, SettingsFragment()).commit()
-
-
-            // If the "Logout" item is selected, show a Toast message saying "Logout!".
-            com.example.wlmap.R.id.nav_logout -> Toast.makeText(this, "Logout!", Toast.LENGTH_SHORT).show()
         }
-        drawerLayout.closeDrawer(GravityCompat.START)
-        return true
-    }
+
         //searchbar
 
-        val searchView = SearchView(this)
+        val searchView = SearchView(requireContext())
         val layoutParams = RelativeLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -523,6 +477,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
         fun hideKeyboard(context: Context, view: View) {
             val inputMethodManager =
                 context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
             searchView.clearFocus()
         }
@@ -657,7 +612,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
             }
 
             // Hide the keyboard regardless of the focus state
-            hideKeyboard(this, mapView)
+            hideKeyboard(requireContext(), mapView)
 
             // Reset userQuery room color from search bar
             mapView.mapboxMap.getStyle { style ->
@@ -717,7 +672,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
                                     restOfTheString = restOfTheString.substring(0, bracketIndex)
                                 }
                                 val finalString = restOfTheString.replace("\"", "").replace(",",", ").replace(":",": ")
-                                Toast.makeText(this@MainActivity, finalString, Toast.LENGTH_SHORT ).show()
+                                Toast.makeText(requireContext(), finalString, Toast.LENGTH_SHORT ).show()
 
                                 // Directions navigation popup on room click
                                 val x = screenPoint.x.toInt()
@@ -726,9 +681,17 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
                                 //point the user selected
                                 pointSelected = point
 
-                                // getClosestDoor(point,currentLayer) //Gets closest door and marks it with a circle
+                                getClosestDoor(point,currentLayer) //Gets closest door and marks it with a circle
 
                                 popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
+
+                                var latitude = pointSelected!!.latitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert latitude to a string rounded to the fourth decimal
+                                var longitude = pointSelected!!.longitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert longitude to a string rounded to the fourth decimal
+
+                                val positionText = "(" + latitude + ", " + longitude + ")" //Set position text to the lat/long strings
+                                initLatLongPopup(positionText) //Initialize the lat/long popup message with the positionText string
+                                latAndlongWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y-100) //Show the lat/long popup message above the "Get Directions" popup
+
 
                                 //Delete previously placed circles
                                 pointAnnotationManager.deleteAll()
@@ -754,6 +717,13 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
                             pointSelected = point
 
                             popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
+
+                            var latitude = pointSelected!!.latitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert latitude to a string rounded to the fourth decimal
+                            var longitude = pointSelected!!.longitude().toBigDecimal().setScale(4, RoundingMode.UP).toString() //Convert longitude to a string rounded to the fourth decimal
+
+                            val positionText = "(" + latitude + ", " + longitude + ")" //Set position text to the lat/long strings
+                            initLatLongPopup(positionText) //Initialize the lat/long popup message with the positionText string
+                            latAndlongWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y-100) //Show the lat/long popup message above the "Get Directions" popup
 
                             //Delete previously placed circles
                             pointAnnotationManager.deleteAll()
@@ -838,16 +808,20 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
                     stop {
                         literal(14)
                         literal(1)
-                    }.stop {
+                    }
+                    stop {
                         literal(16)
                         literal(5)
-                    }.stop {
+                    }
+                    stop {
                         literal(18)
                         literal(7)
-                    }.stop {
+                    }
+                    stop {
                         literal(20)
                         literal(20)
-                    }.stop {
+                    }
+                    stop {
                         literal(22)
                         literal(30)
                     }
@@ -927,6 +901,8 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
                 })
             }
         }
+
+        return container
     }
 
     private fun initManagers() {
@@ -988,7 +964,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
 
     private fun initNavigationPopup() {
         // Create the button programmatically with an icon next to the text
-        val button = Button(this).apply {
+        val button = Button(requireContext()).apply {
             text = "Get Directions"
             // Set the icon to the left of the text
             setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_directions, 0)
@@ -1000,7 +976,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
         }
 
         // Initialize the PopupWindow (assuming you have a PopupWindow instance)
-        popupWindow = PopupWindow(this).apply {
+        popupWindow = PopupWindow(requireContext()).apply {
             width = LinearLayout.LayoutParams.WRAP_CONTENT
             height = LinearLayout.LayoutParams.WRAP_CONTENT
             isFocusable = true
@@ -1009,15 +985,43 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
         }
     }
 
+    private fun initLatLongPopup(positionText: String) {
+        // Create the button programmatically with an icon next to the text
+        if (pointSelected != null){
+            val button = Button(requireContext()).apply {
+                text = positionText
+                // Set the icon to the left of the text
+//                setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_directions, 0)
+//                setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
+                setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_menu_compass, 0)
+                setCompoundDrawablePadding(10) // Sets the padding to 10 pixels
+                setOnClickListener {
+                    latAndlongWindow.dismiss()
+                }
+            }
+
+            // Initialize the PopupWindow (assuming you have a PopupWindow instance)
+            latAndlongWindow = PopupWindow(requireContext()).apply {
+                width = LinearLayout.LayoutParams.WRAP_CONTENT
+                height = LinearLayout.LayoutParams.WRAP_CONTENT
+                isFocusable = true
+                contentView = button
+                setBackgroundDrawable(null)
+            }
+
+        }
+    }
+
+
     private fun initRoomSelector(): Spinner {
         // Create a Spinner
-        val spinner = Spinner(this)
+        val spinner = Spinner(requireContext())
 
         // Set up the adapter for the Spinner
-        val adapter = ArrayAdapter(this, R.layout.simple_spinner_item, spinnerOptions)
+        val adapter = ArrayAdapter(requireContext(), R.layout.simple_spinner_item, spinnerOptions)
         adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
         spinner.adapter = object :
-            ArrayAdapter<String>(this, R.layout.simple_spinner_dropdown_item, spinnerOptions) {
+            ArrayAdapter<String>(requireContext(), R.layout.simple_spinner_dropdown_item, spinnerOptions) {
             override fun getDropDownView(
                 position: Int,
                 convertView: View?,
@@ -1056,7 +1060,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
 
     private fun initFloorSelector(): LinearLayout {
         // Create a LinearLayout to hold the buttons
-        val floorLevelButtons = LinearLayout(this)
+        val floorLevelButtons = LinearLayout(requireContext())
         floorLevelButtons.id = View.generateViewId() // Generate a unique id for the LinearLayout
         val paramsButtons = RelativeLayout.LayoutParams(
             RelativeLayout.LayoutParams.WRAP_CONTENT,
@@ -1069,7 +1073,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
         floorLevelButtons.layoutParams = paramsButtons
 
         // Create and add buttons to the LinearLayout
-        buttonF1 = Button(this)
+        buttonF1 = Button(requireContext())
         buttonF1.id = View.generateViewId() // Generate a unique id for the button
         buttonF1.text = "1"
         buttonF1.setBackgroundColor(Color.DKGRAY)
@@ -1082,7 +1086,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
         buttonF1.layoutParams = buttonParams1
         floorLevelButtons.addView(buttonF1)
 
-        buttonF3 = Button(this)
+        buttonF3 = Button(requireContext())
         buttonF3.id = View.generateViewId() // Generate a unique id for the button
         buttonF3.text = "3"
         buttonF3.setBackgroundColor(Color.DKGRAY)
@@ -1236,7 +1240,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
 //            circleAnnotationManager.create(circleMarkerOptions)
 //        }
 
-        if (pointSelected == null)
+        if (doorSelected != null)
         {
             navGraph.walkPoints = grabWalk(navGraph)
 
@@ -1259,23 +1263,40 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
             val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
             navGraph.addEdge(nearestUserPoint,userLastLocation)
 
-//            val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
-//            navGraph.addEdge(nearestDoorPoint,doorSelected!!)
+            val nearestDoorPoint = navGraph.findClosestPoint(navGraph.walkPoints,doorSelected!!)
+            navGraph.addEdge(nearestDoorPoint,doorSelected!!)
 
-            //Obtain the nearest point to the user-selected point and add the edge to navGraph
             val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,pointSelected!!)
             navGraph.addEdge(nearestPoint,pointSelected!!)
 
+            //A list that connects a path from the door point to the point selected within the room
+            val door_to_roomPoint: List<Point> = listOf(doorSelected!!, pointSelected!!)
+
+
             if (routeDisplayed) {
                 Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
-                polylineAnnotationManager.delete(prevRoute!!)
+                polylineAnnotationManager.deleteAll()
 
             } else {
                 Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
             }
 
-            val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-                .withPoints(navGraph.calcRoute(userLastLocation, pointSelected!!))
+            //Draws a path from the user location to the door
+            val polylineAnnotationOptions_1: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                .withPoints(navGraph.calcRoute(userLastLocation, doorSelected!!))
+                // Style the line that will be added to the map.
+                .withLineColor("#0f53ff")
+                .withLineWidth(6.3)
+                .withLineJoin(LineJoin.ROUND)
+                .withLineSortKey(0.0)
+
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions_1)
+
+            //Obtain the nearest point to the user-selected point and add the edge to navGraph
+
+            //Draws a path from the door to the point selected by the user
+            val polylineAnnotationOptions_2 = PolylineAnnotationOptions()
+                .withPoints(door_to_roomPoint)
                 // Style the line that will be added to the map.
                 .withLineColor("#0f53ff")
                 .withLineWidth(6.3)
@@ -1283,8 +1304,9 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
                 .withLineSortKey(0.0)
 
             // Add the resulting line to the map.
-            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
+            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions_2)
             routeDisplayed = true
+            doorSelected = null
             return
 
         } else {
@@ -1316,11 +1338,13 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
 
             if (routeDisplayed) {
                 Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
-                polylineAnnotationManager.delete(prevRoute!!)
+                polylineAnnotationManager.deleteAll()
 
             } else {
                 Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
             }
+
+
 
             val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
                 .withPoints(navGraph.calcRoute(userLastLocation, pointSelected!!))
@@ -1464,15 +1488,15 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
                                         doorAnnotationManager.deleteAll()
                                     }
                                     // Create a circle marker for each point
-                                    val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
-                                        .withPoint(door)
-                                        .withCircleColor("#ffcf40") // Match the color with the polyline
-                                        .withCircleRadius(7.0) // Set the radius of the circle
-                                        .withCircleOpacity(1.0) // Set the opacity of the circle
-                                        .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
-
-                                    // Add the circle marker to the map
-                                    doorAnnotationManager.create(circleMarkerOptions)
+//                                    val circleMarkerOptions:CircleAnnotationOptions = CircleAnnotationOptions()
+//                                        .withPoint(door)
+//                                        .withCircleColor("#ffcf40") // Match the color with the polyline
+//                                        .withCircleRadius(7.0) // Set the radius of the circle
+//                                        .withCircleOpacity(1.0) // Set the opacity of the circle
+//                                        .withCircleSortKey(1.0) // Ensure the circle is drawn above the polyline
+//
+//                                    // Add the circle marker to the map
+//                                    doorAnnotationManager.create(circleMarkerOptions)
                                     prevDoor = true
                                 }
                             }
@@ -1500,11 +1524,10 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe(serverTopic)
         mqttHandler.onMessageReceived = { message ->
-            runOnUiThread {
-                Log.e("SERVER", message)
-            }
+            Log.e("SERVER", message)
         }
     }
+
     private fun publishLocation(point: Point) {
         val lat = point.latitude()
         val long = point.longitude()
@@ -1512,6 +1535,7 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
         mqttHandler.publish("test/topic",serverMessage)
     }
     override fun onDestroy() {
+        sensorManager.unregisterListener(this)
         super.onDestroy()
         try {
             mqttHandler.disconnect()
@@ -1523,31 +1547,56 @@ class MainActivity : AppCompatActivity(),NavigationView.OnNavigationItemSelected
     private fun Int.dpToPx(): Int {
         val density = Resources.getSystem().displayMetrics.density
         return (this * density).toInt()
-    // A private method that replaces the current fragment with the provided HomeFragment.
-    private fun replaceFragment(fragment: HomeFragment){
-        // Begin a new fragment transaction.
-        val transaction: FragmentTransaction = supportFragmentManager.beginTransaction()
-
-        // Replace the fragment currently in the 'fragment_container' with the given 'fragment'.
-        transaction.replace(com.example.wlmap.R.id.fragment_container, fragment)
-
-        // Commit the transaction to apply the changes.
-        transaction.commit()
     }
+    private fun setUpSensor() {
+        // Use the correct context to get the system service
+        sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-    // Override the 'onBackPressed' method to handle the back button behavior.
-    override fun onBackPressed() {
-        // Call the parent class's 'onBackPressed' method to perform any default back press behavior.
-        super.onBackPressed()
-
-        // Check if the navigation drawer is open on the start (left) side of the screen.
-        // If so, we close it.
-        if (drawerLayout.isDrawerOpen(GravityCompat.START)){
-            drawerLayout.closeDrawer(GravityCompat.START)
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also { accelerometer ->
+            sensorManager.registerListener(
+                this,
+                accelerometer,
+                SensorManager.SENSOR_DELAY_NORMAL,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
         }
-        // If not, handle the back press as normal using 'onBackPressedDispatcher'.
-        else{
-            onBackPressedDispatcher.onBackPressed()
+
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also { gyroscope ->
+            sensorManager.registerListener(
+                this,
+                gyroscope,
+                SensorManager.SENSOR_DELAY_NORMAL,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
         }
     }
+
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="accelerator: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="gyroscope: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
+        return
+    }
+
 }

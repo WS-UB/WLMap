@@ -1,10 +1,29 @@
 # WLMap
 
 ## Description
+
 This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
 
 ## Features
 This app can provide accurate mapping of Davis Hall, real-time location tracking, and navigational directions to any point within Davis Hall.
+WLMap (Wireless Localization Map) is an Android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. The goal is to create a stable Android mobile application for indoor navigation and WiFi-based data collection. 
+
+## Features
+This app can provide the following:
+   - Accurate mapping of Davis Hall.
+   - Navigational directions to any point within Davis Hall.
+   - Record gyroscopic and accelerometer information.
+   - An interactable UI.
+   - Navigational map option.
+   - Data collection map option.
+
+## Goals and Challenges
+Our current goals for this project include:
+   - Resolving technical issues with the data collection app.
+   - Developing a functional navigational interface.
+   - Enhancing the the front-end user interface.
+   - Integrating server-side data processing using AWS.
+
 
 ## Tools
 Kotlin and Android Studio are used to create the application on the Android platform, more specifically, a Google Pixel 7A.
@@ -14,19 +33,34 @@ The directory, app/src/main, contains the following files:
 
 1. assets
    - sprite_images
-       - 1.1.1 exit-door-svgrepo-com.svg
+   - 1.1.1 exit-door-svgrepo-com.svg
    - style.json
 2. java/com/example/wlmap
    - Graph.kt
-      - Create a graph where the nodes are the navigation points (ID, longitude, latitude, and set of neighboring nodes) on the map and the edge is the Haversine distance between the two nodes. Afterward, we use Dijkstra's Algorithm to navigate the shortest path between two points and return a list of points that needed to take.
+   - Create a graph where the nodes are the navigation points (ID, longitude, latitude, and set of neighboring nodes) on the map and the edge is the Haversine distance between the two nodes. Afterward, we use Dijkstra's Algorithm to navigate the shortest path between two points and return a list of points that needed to take.
    - LocationPermissionHelper.kt
    - MainActivity.kt
    - MqttHandler.kt
    - NavPoint.kt
-      - An abstract data class that works as a constructor to navigate the path between two points.
+   - An abstract data class that works as a constructor to navigate the path between two points.
 3. res
    - drawable
    - layout
+   - DataCollectionFragment.kt
+   - HomeFragment.kt
+   - LocationPermissionHelper.kt
+   - MainActivity.kt
+   - MapFragment.kt
+   - MqttHandler.kt
+   - NavPoint.kt
+   - RateConfidenceFragment.kt
+   - SendDataFragment.kt
+   - SettingsFragment.kt
+3. res
+   - drawable
+   - layout
+   - menu
+
    - mipmap-anydpi-v26
    - mipmap-hdpi
    - mipmap-mdpi
@@ -49,8 +83,8 @@ The directory, app/src/main, contains the following files:
 
 3. Allow Gradle to install and update the AGP (Android Gradle Plugin) to version 8.6 if prompted
    - If you are not prompted to update the AGP, follow these instructions:
-     - Select the "Tools" drop-down menu on the top of the IDE.
-     - Select "AGP Upgrade Assistant."
+   - Select the "Tools" drop-down menu on the top of the IDE.
+    - Select "AGP Upgrade Assistant."
      - Select version 8.6.
      - Select "Run selected steps."
      - After the update is complete, select "Refresh."
@@ -64,8 +98,21 @@ The directory, app/src/main, contains the following files:
 
 ## Project Roadmap
 
+
 - [x] User can select any point in Davis Hall and can get navigational directions.
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [ ] User can travel to any point within a room in Davis Hall [WIP]
 
+### User UI-UX
+- [x] Enable the feature to fill in the information on the Share Data page.
+- [x] Integrating the interactive map fragment into the WLMap button.
+
+### User readings
+- [x] User can view and record gyroscope and accelerometer readings.
+
+### User click-ability/user search navigation
+- [x] User can select any point in Davis Hall and can get navigational directions.
+- [x] The point the user selects is marked and displayed with a circle.
+- [x] Latitude and longitude coordinates are displayed on the point that the user selects.
+- [x] User can travel to any point within a room in Davis Hall.
