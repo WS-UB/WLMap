@@ -1,10 +1,23 @@
 # WLMap
 
 ## Description
-This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
+WLMap (Wireless Localization Map) is an Android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. The goal is to create a stable Android mobile application for indoor navigation and WiFi-based data collection. 
 
 ## Features
-This app can provide accurate mapping of Davis Hall, real-time location tracking, and navigational directions to any point within Davis Hall.
+This app can provide the following:
+   - Accurate mapping of Davis Hall.
+   - Navigational directions to any point within Davis Hall.
+   - Record gyroscopic and accelerometer information.
+   - An interactable UI.
+   - Navigational map option.
+   - Data collection map option.
+
+## Goals and Challenges
+Our current goals for this project include:
+   - Resolving technical issues with the data collection app.
+   - Developing a functional navigational interface.
+   - Enhancing the the front-end user interface.
+   - Integrating server-side data processing using AWS.
 
 ## Tools
 Kotlin and Android Studio are used to create the application on the Android platform, more specifically, a Google Pixel 7A.
@@ -21,10 +34,6 @@ The directory, app/src/main, contains the following files:
       - Create a graph where the nodes are the navigation points (ID, longitude, latitude, and set of neighboring nodes) on the map and the edge is the Haversine distance between the two nodes. Afterward, we use Dijkstra's Algorithm to navigate the shortest path between two points and return a list of points that needed to take.
    - LocationPermissionHelper.kt
    - MainActivity.kt
-<<<<<<< HEAD
-     - Uses Android sensor to display Accelerator and Gyroscope readings
-=======
->>>>>>> origin/feature/user-search-navigation
    - MqttHandler.kt
    - NavPoint.kt
       - An abstract data class that works as a constructor to navigate the path between two points.
@@ -66,18 +75,18 @@ The directory, app/src/main, contains the following files:
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
 
-<<<<<<< HEAD
 ## Project Roadmap
 
+### User UI-UX
+- [x] Enable the feature to fill in the information on the Share Data page.
+- [x] Integrating the interactive map fragment into the WLMap button.
+
+### User readings
+- [x] User can view and record gyroscope and accelerometer readings.
+
+### User click-ability/user search navigation
 - [x] User can select any point in Davis Hall and can get navigational directions.
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
-- [ ] User can travel to any point within a room in Davis Hall [WIP]
-=======
-## Project Status
-User can search for any room in the search bar and get navigational directions to the room
-
-
- 
->>>>>>> origin/feature/user-search-navigation
+- [x] User can travel to any point within a room in Davis Hall.
 
