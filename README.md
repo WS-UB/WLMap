@@ -16,7 +16,7 @@ This application will be designed and used by University at Buffalo students and
 Our current goals for this project include:
    - Resolving technical issues with the data collection app.
    - Developing a functional navigational interface.
-   - Enhancing the the front-end user interface.
+   - Making the front-end interface easier to interact with.
    - Storing user/device data using server integration.
    - Integrating server-side data processing using AWS.
    - Retrieving server-side data to update user position.
@@ -44,42 +44,6 @@ This app can provide the following:
 
 ## Tools
 Kotlin and Android Studio are used to create the application on the Android platform, more specifically, a Google Pixel 7A.
-
-## Directory Files and Locations
-The directory, app/src/main, contains the following files:
-
-1. assets
-   - sprite_images
-   - 1.1.1 exit-door-svgrepo-com.svg
-   - style.json
-2. java/com/example/wlmap
-   - Graph.kt
-   - drawable
-   - layout
-   - DataCollectionFragment.kt
-   - HomeFragment.kt
-   - LocationPermissionHelper.kt
-   - MainActivity.kt
-   - MapFragment.kt
-   - MqttHandler.kt
-   - NavPoint.kt
-   - RateConfidenceFragment.kt
-   - SendDataFragment.kt
-   - SettingsFragment.kt
-3. res
-   - drawable
-   - layout
-   - menu
-   - mipmap-anydpi-v26
-   - mipmap-hdpi
-   - mipmap-mdpi
-   - mipmap-xhdpi
-   - mipmap-xxhdpi
-   - mipmap-xxxhdpi
-   - values-night
-   - values
-   - xml
-4. AndroidManiest.xml
 
 ## Deployment Instructions
 
@@ -109,7 +73,8 @@ The directory, app/src/main, contains the following files:
 
 ### User UI-UX
 - [x] Enable the feature to fill in the information on the Share Data page.
-- [x] Integrating the interactive map fragment into the WLMap button.
+- [x] Integrating the interactive map fragment into the Navigation and Data Collection button.
+- [x] The Data Collection page can send the user's rate of confidence about their location on the map to the log.
 
 ### User readings
 - [x] User can view and record gyroscope and accelerometer readings.
