@@ -3,12 +3,6 @@ package com.example.wlmap
 import android.content.ContentValues
 import android.util.Log
 import com.mapbox.geojson.Point
-import com.mapbox.maps.logD
-import com.mapbox.maps.logE
-import org.w3c.dom.Node
-import java.util.PriorityQueue
-import kotlin.math.*
-import kotlin.random.Random
 import java.util.PriorityQueue
 import kotlin.math.*
 

@@ -30,12 +30,10 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
-import com.mapbox.common.location.Location
 import com.mapbox.common.location.LocationObserver
 import com.mapbox.common.location.LocationProviderRequest
 import com.mapbox.common.location.LocationService
@@ -67,20 +65,14 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
-import java.lang.ref.WeakReference
 import java.math.RoundingMode
-import kotlin.math.round
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentTransaction
 import com.google.android.material.navigation.NavigationView
 
 
@@ -123,6 +115,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private lateinit var userLastLocation: Point
 
     //private var curRoute: List<Point> = null
+    private var roomHighlighted = false
     private var doorSelected: Point? = null
     private var pointSelected: Point? = null
     private var circleAnnotationId: CircleAnnotation? = null
@@ -458,10 +451,19 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         searchView.isIconifiedByDefault = false
         searchView.setBackgroundColor(Color.DKGRAY)
         // change color
+        // Set up 'X' button (close button) functionality
+        val closeButtonId = searchView.context.resources.getIdentifier("android:id/search_close_btn", null, null)
+        val closeButton = searchView.findViewById<ImageView>(closeButtonId)
+
+        closeButton?.setOnClickListener {
+            clearHighlightedRoom() // Clear both the room highlight and the navigation path
+            searchView.setQuery("", false) // Clear the search bar text
+            searchView.clearFocus() // Remove focus from the search bar
+        }
         val id = searchView.context.resources
             .getIdentifier("android:id/search_src_text", null, null)
-        val closeButtonId = searchView.context.resources
-            .getIdentifier("android:id/search_close_btn", null, null)
+//        val closeButtonId = searchView.context.resources
+//            .getIdentifier("android:id/search_close_btn", null, null)
         val magnifyId = searchView.context.resources.getIdentifier("android:id/search_mag_icon",null,null)
         val magnifyView = searchView.findViewById<View>(magnifyId) as ImageView
         magnifyView.setColorFilter(Color.WHITE)
@@ -518,6 +520,8 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
+                clearHighlightedRoom()
+
                 userQuery = query
                 // This method will be called when the user submits the query (e.g., by pressing Enter)
                 // You can perform your desired action here
@@ -573,22 +577,43 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
 
                 // Create a RenderedQueryGeometry from the visible area geometry
                 val renderedQueryGeometry = RenderedQueryGeometry(visibleAreaPolygon)
-                val renderedQueryOptions = RenderedQueryOptions(listOf(sourceLayerId), Expression.eq(Expression.get("name"), Expression.literal(query)))
-                mapView.mapboxMap.queryRenderedFeatures(renderedQueryGeometry,renderedQueryOptions) { features ->
+                val renderedQueryOptions = RenderedQueryOptions(
+                    listOf(sourceLayerId),
+                    Expression.eq(Expression.get("name"), Expression.literal(query))
+                )
+
+                // Query the room's feature and center on it
+                mapView.mapboxMap.queryRenderedFeatures(
+                    renderedQueryGeometry,
+                    renderedQueryOptions
+                ) { features ->
                     if (features.isValue) {
                         val f = features.value
                         if (f != null && f.size > 0) {
                             val room = f[0].queriedFeature.feature.geometry() as Polygon
-                            Log.d("DEBUG",f[0].queriedFeature.feature.getProperty("name").toString())
-                            val center = calculateCentroid(room)
-                            mapView.mapboxMap.flyTo(
-                                CameraOptions.Builder()
-                                    .center(center)
-                                    .pitch(0.0)
-                                    .zoom(20.0)
-                                    .bearing(0.0)
-                                    .build()
-                            )
+                            val center = calculateCentroid(room) // Calculate room's center
+
+                            // Set the pointSelected to the center of the room
+                            pointSelected = center
+
+                            // Only proceed if the pointSelected is valid
+                            if (pointSelected != null) {
+                                val screenPoint =
+                                    mapView.mapboxMap.pixelForCoordinate(pointSelected!!)
+
+                                // Make sure the screen point is valid and within bounds
+                                if (screenPoint.x > 0 && screenPoint.y > 0) {
+                                    // Show the popup at the selected room's location
+                                    val x = screenPoint.x.toInt()
+                                    val y = screenPoint.y.toInt()
+                                    popupWindow.showAtLocation(searchView, Gravity.NO_GRAVITY, x, y)
+                                } else {
+                                    Log.e(
+                                        "ERROR",
+                                        "Invalid screen point: x=${screenPoint.x}, y=${screenPoint.y}"
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -1002,6 +1027,41 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         }
     }
 
+    // Place it near other helper functions like `initNavigationPopup()` for organization
+    // Place it near other helper functions like `initNavigationPopup()` for organization
+    private fun clearHighlightedRoom() {
+        if (!roomHighlighted) return  // Exit if no room is highlighted
+
+        mapView.mapboxMap.getStyle { style ->
+            var sourceLayerId = ""
+            var sourceLabelLayerId = ""
+            var sourceLayerDoorId = ""
+
+            if (floorSelected == 1) {
+                sourceLayerId = FLOOR1_LAYOUT
+                sourceLabelLayerId = FLOOR1_LABELS
+                sourceLayerDoorId = FLOOR1_DOORS
+            } else if (floorSelected == 3) {
+                sourceLayerId = FLOOR3_LAYOUT
+                sourceLabelLayerId = FLOOR3_LABELS
+                sourceLayerDoorId = FLOOR3_DOORS
+            }
+
+            val layer = style.getLayerAs<FillLayer>(sourceLayerId)
+            val symbolLayer = style.getLayerAs<SymbolLayer>(sourceLabelLayerId)
+            val doorLayer = style.getLayerAs<SymbolLayer>(sourceLayerDoorId)
+
+            layer?.fillColor(Expression.color(Color.parseColor("#7e7c77"))) // Reset color
+            symbolLayer?.textOpacity(1.0)
+            symbolLayer?.textAllowOverlap(true)
+
+            popupWindow.dismiss()
+            roomHighlighted = false  // Reset flag
+        }
+    }
+
+
+
     private fun initLatLongPopup(positionText: String) {
         // Create the button programmatically with an icon next to the text
         if (pointSelected != null){
@@ -1349,12 +1409,18 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val door_to_roomPoint: List<Point> = listOf(doorSelected!!, pointSelected!!)
 
 
+//            if (routeDisplayed) {
+//                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+//                polylineAnnotationManager.deleteAll()
+//
+//            } else {
+//                Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+//            }
+
             if (routeDisplayed) {
                 Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
                 polylineAnnotationManager.deleteAll()
-
-            } else {
-                Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+                routeDisplayed = false
             }
 
             //Draws a path from the user location to the door
@@ -1412,12 +1478,18 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             navGraph.addEdge(nearestPoint,pointSelected!!)
 
 
+//            if (routeDisplayed) {
+//                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+//                polylineAnnotationManager.deleteAll()
+//
+//            } else {
+//                Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+//            }
+
             if (routeDisplayed) {
                 Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
                 polylineAnnotationManager.deleteAll()
-
-            } else {
-                Log.e(ContentValues.TAG, "Route not displayed, not deleting annotations")
+                routeDisplayed = false
             }
 
 
