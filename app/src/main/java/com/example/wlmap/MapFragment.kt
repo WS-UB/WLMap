@@ -86,8 +86,8 @@ import com.google.android.material.navigation.NavigationView
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
-    private val serverUri = "tcp://128.205.218.189:1883" // Server address
-    private val clientId = "Client ID"  // Client ID
+    private val serverUri = "tcp://128.205.221.173:8883" // Server address
+    private val clientId = "001000"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
     private val STYLE_CUSTOM = "asset://style.json" // ???
     private val FLOOR1_LAYOUT = "davis01"
@@ -134,6 +134,10 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private var floorSelected: Int = 0 //Determines the floor selected (1-3)
     private lateinit var drawerLayout: DrawerLayout
 
+    var runnable: Runnable = Runnable {
+        initMQTTHandler()
+    }
+
     // This function handles navigation item selections from a navigation drawer.
     // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -157,7 +161,8 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
         // 2. Connection to UB VPN or UB network
-        initMQTTHandler()
+        val thread: Thread = Thread(runnable)
+        thread.start()
 
         // Create a RelativeLayout to hold the MapView
         val container = RelativeLayout(requireContext())
@@ -1601,7 +1606,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private fun initMQTTHandler() {
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId)
-        mqttHandler.subscribe(serverTopic)
+        mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
             Log.e("SERVER", message)
         }
@@ -1631,22 +1636,12 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         // Use the correct context to get the system service
         sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also { accelerometer ->
-            sensorManager.registerListener(
-                this,
-                accelerometer,
-                SensorManager.SENSOR_DELAY_NORMAL,
-                SensorManager.SENSOR_DELAY_NORMAL
-            )
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
-        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also { gyroscope ->
-            sensorManager.registerListener(
-                this,
-                gyroscope,
-                SensorManager.SENSOR_DELAY_NORMAL,
-                SensorManager.SENSOR_DELAY_NORMAL
-            )
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
 
@@ -1668,7 +1663,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             val z= event.values[2]
             val t="gyroscope: "
             val comma= ", "
-            b.apply{
+            g.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
         }
