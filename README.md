@@ -24,6 +24,13 @@ Our current goals for this project include:
    - Use stored reliable data for an A.I. training model.
 
 
+## Technology and Development Plans
+Our current technology and development plans include:
+   - Kotlin: Watch video tutorials and read documentation for better understanding.
+   - UI/UX design: Watch video tutorials and refer to Figma UI outline as a reference for design features.
+   - MQTT: Read MQTT documentation and refer to Dr. Roshan for better understanding and implementation.
+
+
 
 ## Features
 This app can provide the following:
