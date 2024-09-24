@@ -4,9 +4,26 @@
 
 This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
 
-## Features
-This app can provide accurate mapping of Davis Hall, real-time location tracking, and navigational directions to any point within Davis Hall.
-WLMap (Wireless Localization Map) is an Android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. The goal is to create a stable Android mobile application for indoor navigation and WiFi-based data collection. 
+## Problem Definition
+
+We aim to create a stable Android mobile application for indoor navigation and WiFi-based data collection. This semester, we will focus on resolving technical issues with the data collection app, enhancing the user interface, and integrating server-side data processing using AWS. Additionally, we will develop a functional navigational interface similar to Google Maps, enabling users to track their indoor location within large buildings like malls and airports. In the long term, we aspire to deploy a fully functional, scalable system that enables seamless indoor navigation by utilizing WiFi signals and real-time data collection. By leveraging machine learning models, we will enhance accuracy in indoor positioning, ensuring privacy and efficiency through the use of hashed user data. Our goal is to provide a robust and open-source platform that can be adapted for various large-scale indoor environments.
+
+## Demographics
+
+This application will be designed and used by University at Buffalo students and faculty, with the goal being that the application is made into an open-source platform that can be adapted for various large-scale indoor environments. 
+
+## Goals and Challenges
+Our current goals for this project include:
+   - Resolving technical issues with the data collection app.
+   - Developing a functional navigational interface.
+   - Enhancing the the front-end user interface.
+   - Storing user/device data using server integration.
+   - Integrating server-side data processing using AWS.
+   - Retrieving server-side data to update user position.
+   - Gather and store user navigation data in a database.
+   - Use stored reliable data for an A.I. training model.
+
+
 
 ## Features
 This app can provide the following:
@@ -16,13 +33,6 @@ This app can provide the following:
    - An interactable UI.
    - Navigational map option.
    - Data collection map option.
-
-## Goals and Challenges
-Our current goals for this project include:
-   - Resolving technical issues with the data collection app.
-   - Developing a functional navigational interface.
-   - Enhancing the the front-end user interface.
-   - Integrating server-side data processing using AWS.
 
 
 ## Tools
@@ -37,13 +47,6 @@ The directory, app/src/main, contains the following files:
    - style.json
 2. java/com/example/wlmap
    - Graph.kt
-   - Create a graph where the nodes are the navigation points (ID, longitude, latitude, and set of neighboring nodes) on the map and the edge is the Haversine distance between the two nodes. Afterward, we use Dijkstra's Algorithm to navigate the shortest path between two points and return a list of points that needed to take.
-   - LocationPermissionHelper.kt
-   - MainActivity.kt
-   - MqttHandler.kt
-   - NavPoint.kt
-   - An abstract data class that works as a constructor to navigate the path between two points.
-3. res
    - drawable
    - layout
    - DataCollectionFragment.kt
@@ -60,7 +63,6 @@ The directory, app/src/main, contains the following files:
    - drawable
    - layout
    - menu
-
    - mipmap-anydpi-v26
    - mipmap-hdpi
    - mipmap-mdpi
@@ -97,12 +99,6 @@ The directory, app/src/main, contains the following files:
    - After the device is installed, select the "play" button next to the installed device to begin running it.
 
 ## Project Roadmap
-
-
-- [x] User can select any point in Davis Hall and can get navigational directions.
-- [x] The point the user selects is marked and displayed with a circle.
-- [x] Latitude and longitude coordinates are displayed on the point that the user selects.
-- [ ] User can travel to any point within a room in Davis Hall [WIP]
 
 ### User UI-UX
 - [x] Enable the feature to fill in the information on the Share Data page.
