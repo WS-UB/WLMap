@@ -119,3 +119,4 @@ The directory, app/src/main, contains the following files:
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [x] User can travel to any point within a room in Davis Hall.
+- [x] User can search for any room in the search bar and get navigational directions to the room
