@@ -78,7 +78,7 @@ import com.google.android.material.navigation.NavigationView
 
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
-    private val serverUri = "tcp://128.205.221.173:8883" // Server address
+    private val serverUri = "tcp://128.205.218.189:1883" // Server address
     private val clientId = "001000"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
     private val STYLE_CUSTOM = "asset://style.json" // ???
@@ -1731,6 +1731,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             g.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
+            mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
         }
         if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
             val x=event.values[0]
@@ -1741,6 +1742,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             b.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
+            mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
         }
     }
 
