@@ -86,7 +86,7 @@ import com.google.android.material.navigation.NavigationView
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
-    private val serverUri = "tcp://128.205.221.173:1883" // Server address
+    private val serverUri = "tcp://128.205.218.189:1883" // Server address
     private val clientId = "001000"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
     private val STYLE_CUSTOM = "asset://style.json" // ???
@@ -155,7 +155,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         b.id = View.generateViewId() // Generate a unique id for the button
         g= Button(requireContext())
         g.id = View.generateViewId()
-        g.text="gyroscope"
+        //g.text="gyroscope"
         setUpSensor()
 
         // To start the MQTT Handler -- You must have:
@@ -1644,7 +1644,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
-        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also{
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
@@ -1660,6 +1660,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             b.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
+            mqttHandler.publish("test/topic", t.plus(x).plus(comma).plus(y).plus(comma).plus(z))
         }
         if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
             val x=event.values[0]
@@ -1670,6 +1671,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             g.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
+            mqttHandler.publish("test/topic", t.plus(x).plus(comma).plus(y).plus(comma).plus(z))
         }
     }
 
