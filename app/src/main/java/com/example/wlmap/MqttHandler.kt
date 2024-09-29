@@ -1,6 +1,7 @@
 package com.example.wlmap
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
+import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
@@ -13,54 +14,44 @@ class MqttHandler {
     var onMessageReceived: ((String) -> Unit)? = null
 
     fun connect(brokerUrl: String?, clientId: String?) {
-        if (brokerUrl.isNullOrEmpty() || clientId.isNullOrEmpty()) {
-            println("Broker URL or Client ID cannot be null or empty")
-            return
+        try {
+            //setup persistent layer
+            val persistence = MemoryPersistence()
+
+            //initialize MQTT client
+            client = MqttClient(brokerUrl, clientId, persistence)
+
+            //setup connection options
+            val connectOptions = MqttConnectOptions()
+            connectOptions.isCleanSession = true
+
+            // Set callback
+            client?.setCallback(object : MqttCallback {
+                override fun connectionLost(cause: Throwable?) {
+                    // Handle connection loss
+                }
+
+                override fun messageArrived(topic: String?, message: MqttMessage?) {
+                    // Handle incoming messages
+                    onMessageReceived?.invoke(message.toString())
+                    println("Message received: ${message?.toString()}")
+                }
+
+                override fun deliveryComplete(token: IMqttDeliveryToken?) {
+                    // Handle completed delivery
+                }
+            })
+
+            client!!.connect()
+
+        } catch (e: MqttException) {
+            e.printStackTrace()
         }
-
-        Thread {
-            try {
-                // Setup persistence
-                val persistence = MemoryPersistence()
-
-                // Initialize MQTT client
-                client = MqttClient(brokerUrl, clientId, persistence)
-
-                // Setup connection options
-                val connectOptions = MqttConnectOptions()
-                connectOptions.isCleanSession = true
-
-                // Set callback
-                client?.setCallback(object : MqttCallback {
-                    override fun connectionLost(cause: Throwable?) {
-                        // Handle connection loss
-                    }
-
-                    override fun messageArrived(topic: String?, message: MqttMessage?) {
-                        message?.let {
-                            val messageString = it.toString()
-                            onMessageReceived?.invoke(messageString)
-                        }
-                    }
-
-                    override fun deliveryComplete(token: IMqttDeliveryToken?) {
-                        // Handle completed delivery
-                    }
-                })
-
-                // Connect and subscribe
-                client?.connect(connectOptions)
-                client?.subscribe("coordinates/topic")
-
-            } catch (e: MqttException) {
-                e.printStackTrace()
-            }
-        }.start() // Run the connection in a background thread
     }
 
     fun disconnect() {
         try {
-            client?.disconnect()
+            client!!.disconnect()
         } catch (e: MqttException) {
             e.printStackTrace()
         }
@@ -69,15 +60,15 @@ class MqttHandler {
     fun publish(topic: String?, message: String) {
         try {
             val mqttMessage = MqttMessage(message.toByteArray())
-            client?.publish(topic, mqttMessage)
-        } catch (e: MqttException) {
+            client!!.publish(topic, mqttMessage)
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     fun subscribe(topic: String?) {
         try {
-            client?.subscribe(topic)
+            client!!.subscribe(topic)
         } catch (e: MqttException) {
             e.printStackTrace()
         }
