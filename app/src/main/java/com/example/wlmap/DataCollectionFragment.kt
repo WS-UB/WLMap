@@ -1678,9 +1678,13 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private fun initMQTTHandler() {
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId)
-        mqttHandler.subscribe(serverTopic)
+        mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
-            Log.e("SERVER", message)
+            val server_runnable: Runnable = Runnable {
+                Log.e("SERVER", message)
+            }
+            val thread: Thread = Thread(server_runnable)
+            thread.start()
         }
     }
 

@@ -86,7 +86,7 @@ import com.google.android.material.navigation.NavigationView
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
-    private val serverUri = "tcp://128.205.221.173:8883" // Server address
+    private val serverUri = "tcp://128.205.221.173:1883" // Server address
     private val clientId = "001000"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
     private val STYLE_CUSTOM = "asset://style.json" // ???
@@ -1608,7 +1608,11 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
-            Log.e("SERVER", message)
+            val server_runnable: Runnable = Runnable {
+                Log.e("SERVER", message)
+            }
+            val thread: Thread = Thread(server_runnable)
+            thread.start()
         }
     }
 
