@@ -1604,8 +1604,10 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     }
 
     private fun initMQTTHandler() {
+        val esUrl = "128.205.218.189:9200"  // Change this to 10.0.2.2 if using an emulator
+        val esIndex = "mqtt-data"           // Index name in Elasticsearch
         mqttHandler = MqttHandler()
-        mqttHandler.connect(serverUri, clientId)
+        mqttHandler.connect(serverUri, clientId, esUrl, esIndex)
         mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
             val server_runnable: Runnable = Runnable {
