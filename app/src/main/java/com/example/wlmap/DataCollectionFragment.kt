@@ -1726,6 +1726,9 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val comma= ", "
             g.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                mqttHandler.publish("test/topic",serverMessage)
+
             }
         }
         if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
@@ -1736,6 +1739,8 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val comma= ", "
             b.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                mqttHandler.publish("test/topic",serverMessage)
             }
         }
     }

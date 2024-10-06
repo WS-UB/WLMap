@@ -67,6 +67,10 @@ import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManag
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.toCameraOptions
+import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.maps.plugin.viewport.viewport
+import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
+import com.mapbox.maps.plugin.PuckBearing
 import org.eclipse.paho.client.mqttv3.MqttException
 import java.lang.ref.WeakReference
 import java.math.RoundingMode
@@ -83,6 +87,13 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import com.google.android.material.navigation.NavigationView
+import java.sql.Timestamp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
+
+import com.mapbox.android.core.permissions.PermissionsListener
+import kotlinx.coroutines.delay
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -100,7 +111,9 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private val LATITUDE = 43.0028 // Starting latitude
     private val LONGITUDE = -78.7873  // Starting longitude
     private val ZOOM = 17.9 // Starting zoom
+    private var server_data = emptyList<String>()
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
+    private var lastUpdate: Long = 0
 
 
     private lateinit var mqttHandler: MqttHandler
@@ -120,6 +133,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private lateinit var b :Button
     private lateinit var g: Button
     private lateinit var userLastLocation: Point
+    private lateinit var list_of_Locations: MutableList<Location>
 
     //private var curRoute: List<Point> = null
     private var roomHighlighted = false
@@ -132,11 +146,43 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private var prevPoint: Boolean = false
     private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
     private var floorSelected: Int = 0 //Determines the floor selected (1-3)
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1
+    private val locationService : LocationService = LocationServiceFactory.getOrCreate()
+    private var locationProvider: DeviceLocationProvider? = null
+
     private lateinit var drawerLayout: DrawerLayout
+
+
+    private fun requestLocationPermission() {
+        ActivityCompat.requestPermissions(
+            requireActivity(),
+            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION),
+            LOCATION_PERMISSION_REQUEST_CODE
+        )
+    }
+
+
+    private fun checkPermissionsAndRequest() {
+        if (ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Permission is not granted, request for permission
+            requestLocationPermission()
+        }
+    }
+
 
     var runnable: Runnable = Runnable {
         initMQTTHandler()
     }
+
+
+
 
     // This function handles navigation item selections from a navigation drawer.
     // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
@@ -176,8 +222,42 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
         // Set ContentView to the RelativeLayout container
         container.addView(mapView)
+        checkPermissionsAndRequest()
+
+        with(mapView) {
+            location.locationPuck = createDefault2DPuck(withBearing = true)
+            location.enabled = true
+            location.puckBearing = PuckBearing.COURSE
+        }
+
+        val request = LocationProviderRequest.Builder()
+            .interval(IntervalSettings.Builder().interval(0L).minimumInterval(0L).maximumInterval(0L).build())
+            .displacement(0F)
+            .accuracy(AccuracyLevel.HIGHEST)
+            .build();
+
+        val result = locationService.getDeviceLocationProvider(request)
+        if (result.isValue) {
+            locationProvider = result.value!!
+        } else {
+            Log.e("SERVER", "Failed to get device location provider")
+        }
+
+        val locationObserver = object: LocationObserver {
+            override fun onLocationUpdateReceived(locations: MutableList<Location>) {
+                val currentTimeMillis = System.currentTimeMillis()
+                val timeStamp = Timestamp(currentTimeMillis).toString()
+                val latitude_GPS = locations[0].latitude
+                val longitude_GPS = locations[0].longitude
+                mqttHandler.publish("test/topic", "GPS,$timeStamp,$latitude_GPS, $longitude_GPS")
+            }
+        }
+
+
+//        locationProvider?.addLocationObserver(locationObserver)
 
         initManagers()
+
 
         // Initialize navigation directions popup
         initNavigationPopup()
@@ -1608,6 +1688,10 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
+            server_data += message
+            server_data.forEach { info ->
+                Log.e("SERVER", info)
+            }
             Log.e("SERVER", message)
         }
     }
@@ -1615,7 +1699,9 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private fun publishLocation(point: Point) {
         val lat = point.latitude()
         val long = point.longitude()
-        val serverMessage = "point,$long,$lat"
+        val currentTimeMillis = System.currentTimeMillis()
+        val timeStamp = Timestamp(currentTimeMillis).toString()
+        val serverMessage = "point,$long,$lat,$timeStamp"
         mqttHandler.publish("test/topic",serverMessage)
     }
     override fun onDestroy() {
@@ -1634,6 +1720,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     }
     private fun setUpSensor() {
         // Use the correct context to get the system service
+        val READINGRATE = 5000000
         sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
@@ -1648,26 +1735,62 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
     override fun onSensorChanged(event: SensorEvent?) {
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="accelerator: "
-            val comma= ", "
-            b.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            val actualTime = event.timestamp
+            if (actualTime - lastUpdate > 400000000){
+                val x=event.values[0]
+                val y= event.values[1]
+                val z= event.values[2]
+                val t="accelerator,"
+                val comma= ", "
+                b.apply{
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
+                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+                    mqttHandler.publish("test/topic",serverMessage)
+                    locationProvider?.getLastLocation { result ->
+                        val currentTimeMillis = System.currentTimeMillis()
+                        val timeStamp = Timestamp(currentTimeMillis).toString()
+                        val latitude_GPS = result?.latitude
+                        val longitude_GPS = result?.longitude
+                        mqttHandler.publish("test/topic", "GPS,$timeStamp,$latitude_GPS, $longitude_GPS")
+                    }
+//
+
+
+                } //The way the readings are set up to be published is just a test
+
+                g.apply{
+                    val x= 0.0
+                    val y= 0.0
+                    val z= 0.0
+                    val t="gyroscope,"
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
+                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+                    mqttHandler.publish("test/topic",serverMessage)
+                    lastUpdate = actualTime
+                }
             }
+
         }
-        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="gyroscope: "
-            val comma= ", "
-            g.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-            }
-        }
+//        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+//            val x=event.values[0]
+//            val y= event.values[1]
+//            val z= event.values[2]
+//            val t="gyroscope: "
+//            val comma= ", "
+//            g.apply{
+//                val currentTimeMillis = System.currentTimeMillis()
+//                val timeStamp = Timestamp(currentTimeMillis).toString()
+//                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+//                mqttHandler.publish("test/topic",serverMessage)
+//            }
+//        }
     }
+
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
         return
