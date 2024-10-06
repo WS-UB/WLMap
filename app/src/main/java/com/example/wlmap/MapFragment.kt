@@ -83,6 +83,12 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import com.google.android.material.navigation.NavigationView
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import java.io.IOException
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -1603,9 +1609,71 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         return lastLocation!!
     }
 
+    private fun publishTestMessage(mqttHandler: MqttHandler) {
+        val topic = "coordinates/topic" // Replace with your topic
+        val testMessage = """{"latitude": 40.7128, "longitude": -74.0060}""" // Example JSON payload
+
+        try {
+            mqttHandler.publish(topic, testMessage)
+            println("Test message published to $topic")
+        } catch (e: MqttException) {
+            println("Failed to publish test message: ${e.message}")
+        }
+    }
+
+    class ElasticsearchHandler(private val esUrl: String) {
+        private val okHttpClient = OkHttpClient()
+
+        // Check document count
+        fun checkDocumentCount(index: String) {
+            val url = "$esUrl/$index/_count"
+            val request = Request.Builder()
+                .url(url)
+                .build()
+
+            okHttpClient.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    println("Error checking document count: ${e.message}")
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    response.use {
+                        if (!response.isSuccessful) throw IOException("Unexpected code $response")
+
+                        val responseBody = response.body?.string()
+                        println("Document count in index '$index': $responseBody")
+                    }
+                }
+            })
+        }
+
+        // Retrieve documents from Elasticsearch
+        fun retrieveDocuments(index: String) {
+            val url = "$esUrl/$index/_search?pretty"
+            val request = Request.Builder()
+                .url(url)
+                .build()
+
+            okHttpClient.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    println("Error retrieving documents: ${e.message}")
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    response.use {
+                        if (!response.isSuccessful) throw IOException("Unexpected code $response")
+
+                        val responseBody = response.body?.string()
+                        println("Documents in index '$index': $responseBody")
+                    }
+                }
+            })
+        }
+    }
+
     private fun initMQTTHandler() {
-        val esUrl = "128.205.218.189:9200"  // Change this to 10.0.2.2 if using an emulator
-        val esIndex = "mqtt-data"           // Index name in Elasticsearch
+        val esUrl = "http://128.205.218.189:9200"  // Change this to 10.0.2.2 if using an emulator
+        val esIndex = "mqtt-data"  // Index name in Elasticsearch
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId, esUrl, esIndex)
         mqttHandler.subscribe("test/topic")
@@ -1616,6 +1684,17 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             val thread: Thread = Thread(server_runnable)
             thread.start()
         }
+        // Publish a test message
+        publishTestMessage(mqttHandler)
+
+        // Initialize ElasticsearchHandler
+        val elasticsearchHandler = ElasticsearchHandler(esUrl)
+
+        // Check the document count in Elasticsearch
+        elasticsearchHandler.checkDocumentCount(esIndex)
+
+        // Retrieve documents from Elasticsearch
+        elasticsearchHandler.retrieveDocuments(esIndex)
     }
 
     private fun publishLocation(point: Point) {

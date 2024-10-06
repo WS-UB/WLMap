@@ -18,6 +18,18 @@ class MqttHandler {
     var onMessageReceived: ((String) -> Unit)? = null
     private val okHttpClient = OkHttpClient()
 
+    fun publishTestMessage(mqttHandler: MqttHandler) {
+        val topic = "coordinates/topic" // Replace with your topic
+        val testMessage = """{"latitude": 40.7128, "longitude": -74.0060}""" // Example JSON payload
+
+        try {
+            mqttHandler.publish(topic, testMessage)
+            println("Test message published to $topic")
+        } catch (e: MqttException) {
+            println("Failed to publish test message: ${e.message}")
+        }
+    }
+
     fun connect(brokerUrl: String?, clientId: String?, esUrl: String, esIndex: String) {
         if (brokerUrl.isNullOrEmpty() || clientId.isNullOrEmpty()) {
             println("Broker URL or Client ID cannot be null or empty")
