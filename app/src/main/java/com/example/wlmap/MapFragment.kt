@@ -1736,43 +1736,43 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     override fun onSensorChanged(event: SensorEvent?) {
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
             val actualTime = event.timestamp
-            if (actualTime - lastUpdate > 400000000){
-                val x=event.values[0]
-                val y= event.values[1]
-                val z= event.values[2]
-                val t="accelerator,"
-                val comma= ", "
-                b.apply{
-                    val currentTimeMillis = System.currentTimeMillis()
-                    val timeStamp = Timestamp(currentTimeMillis).toString()
-                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
-                    mqttHandler.publish("test/topic",serverMessage)
-                    locationProvider?.getLastLocation { result ->
-                        val currentTimeMillis = System.currentTimeMillis()
-                        val timeStamp = Timestamp(currentTimeMillis).toString()
-                        val latitude_GPS = result?.latitude
-                        val longitude_GPS = result?.longitude
-                        mqttHandler.publish("test/topic", "GPS,$timeStamp,$latitude_GPS, $longitude_GPS")
-                    }
+//            if (actualTime - lastUpdate > 400000000){
+//                val x=event.values[0]
+//                val y= event.values[1]
+//                val z= event.values[2]
+//                val t="accelerator,"
+//                val comma= ", "
+//                b.apply{
+//                    val currentTimeMillis = System.currentTimeMillis()
+//                    val timeStamp = Timestamp(currentTimeMillis).toString()
+//                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+//                    mqttHandler.publish("test/topic",serverMessage)
+//                    locationProvider?.getLastLocation { result ->
+//                        val currentTimeMillis = System.currentTimeMillis()
+//                        val timeStamp = Timestamp(currentTimeMillis).toString()
+//                        val latitude_GPS = result?.latitude
+//                        val longitude_GPS = result?.longitude
+//                        mqttHandler.publish("test/topic", "GPS,$timeStamp,$latitude_GPS, $longitude_GPS")
+//                    }
+////
 //
-
-
-                } //The way the readings are set up to be published is just a test
-
-                g.apply{
-                    val x= 0.0
-                    val y= 0.0
-                    val z= 0.0
-                    val t="gyroscope,"
-                    val currentTimeMillis = System.currentTimeMillis()
-                    val timeStamp = Timestamp(currentTimeMillis).toString()
-                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
-                    mqttHandler.publish("test/topic",serverMessage)
-                    lastUpdate = actualTime
-                }
-            }
+//
+//                } //The way the readings are set up to be published is just a test
+//
+//                g.apply{
+//                    val x= 0.0
+//                    val y= 0.0
+//                    val z= 0.0
+//                    val t="gyroscope,"
+//                    val currentTimeMillis = System.currentTimeMillis()
+//                    val timeStamp = Timestamp(currentTimeMillis).toString()
+//                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+//                    mqttHandler.publish("test/topic",serverMessage)
+//                    lastUpdate = actualTime
+//                }
+//            }
 
         }
 //        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
