@@ -2,7 +2,6 @@ package com.example.wlmap
 
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import org.eclipse.paho.client.mqttv3.*
 import org.json.JSONObject
 import java.io.IOException
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
@@ -17,18 +16,6 @@ class MqttHandler {
     private var client: MqttClient? = null
     var onMessageReceived: ((String) -> Unit)? = null
     private val okHttpClient = OkHttpClient()
-
-    fun publishTestMessage(mqttHandler: MqttHandler) {
-        val topic = "coordinates/topic" // Replace with your topic
-        val testMessage = """{"latitude": 40.7128, "longitude": -74.0060}""" // Example JSON payload
-
-        try {
-            mqttHandler.publish(topic, testMessage)
-            println("Test message published to $topic")
-        } catch (e: MqttException) {
-            println("Failed to publish test message: ${e.message}")
-        }
-    }
 
     fun connect(brokerUrl: String?, clientId: String?, esUrl: String, esIndex: String) {
         if (brokerUrl.isNullOrEmpty() || clientId.isNullOrEmpty()) {
@@ -48,38 +35,21 @@ class MqttHandler {
                 val connectOptions = MqttConnectOptions()
                 connectOptions.isCleanSession = true
 
-                // Set callback
-                client?.setCallback(object : MqttCallback {
-                    override fun connectionLost(cause: Throwable?) {
-                        // Handle connection loss
-                    }
+                // Connect to the broker
+                client?.connect(connectOptions)
 
-                    override fun messageArrived(topic: String?, message: MqttMessage?) {
-                        message?.let {
-                            val messageString = it.toString()
-                            onMessageReceived?.invoke(messageString)
+                // Subscribe to the topic
+                client?.subscribe("test/topic")
 
-                            // Send received message to Elasticsearch
-                            sendToElasticsearch(esUrl, esIndex, messageString)
-                        }
-                    }
-
-                    override fun deliveryComplete(token: IMqttDeliveryToken?) {
-                        // Handle completed delivery
-                        println("Delivery complete")
-                    }
-                })
-
-                // Connect and subscribe
-                //client?.connect(connectOptions)
-                client!!.connect()
-                client?.subscribe("coordinates/topic")
+                // Log successful connection
+                println("Connected to broker: $brokerUrl")
 
             } catch (e: MqttException) {
                 e.printStackTrace()
             }
         }.start() // Run the connection in a background thread
     }
+
 
     // Method to send the message to Elasticsearch
     private fun sendToElasticsearch(esUrl: String, esIndex: String, message: String) {
@@ -121,12 +91,12 @@ class MqttHandler {
         }
     }
 
-    fun publish(topic: String?, message: String) {
-        try {
+    fun publish(topic: String, message: String) {
+        if (client?.isConnected == true) {
             val mqttMessage = MqttMessage(message.toByteArray())
             client?.publish(topic, mqttMessage)
-        } catch (e: MqttException) {
-            e.printStackTrace()
+        } else {
+            println("MQTT Client is not connected")
         }
     }
 
