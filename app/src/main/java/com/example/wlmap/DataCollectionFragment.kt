@@ -75,6 +75,7 @@ import kotlin.math.sqrt
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
+import android.provider.Settings
 
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -129,6 +130,8 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private lateinit var drawerLayout: DrawerLayout
     private var accreadings="t"
     private var gyroreadings="g"
+    var deviceID = View.generateViewId()
+
     var runnable: Runnable = Runnable {
         initMQTTHandler()
     }
@@ -216,7 +219,6 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         // Initializing drop down spinner and adding to ContentView container
         val spinner = initRoomSelector()
         container.addView(spinner)
-
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
             }
@@ -1682,6 +1684,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
+        mqttHandler.subscribe("/deviceid")
         mqttHandler.onMessageReceived = { message ->
             val server_runnable: Runnable = Runnable {
                 Log.e("SERVER", message)
@@ -1689,6 +1692,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val thread: Thread = Thread(server_runnable)
             thread.start()
         }
+        mqttHandler.publish("/deviceid",deviceID.toString())
     }
 
     private fun publishLocation(point: Point) {
@@ -1735,7 +1739,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
                 accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
-            //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
+            mqttHandler.publish("/deviceid" , deviceID.toString())
         }
         if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
             val x=event.values[0]
