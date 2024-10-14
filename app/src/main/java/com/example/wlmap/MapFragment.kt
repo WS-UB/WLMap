@@ -1,11 +1,12 @@
 package com.example.wlmap
+
 import LocationPermissionHelper
 import android.R
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
-import android.content.Context.SENSOR_SERVICE
+import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Color
 import android.hardware.Sensor
@@ -13,11 +14,13 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.net.wifi.WifiManager
+import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.View
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
@@ -31,8 +34,12 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getSystemService
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import com.google.android.material.navigation.NavigationView
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
@@ -49,10 +56,11 @@ import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.ScreenBox
 import com.mapbox.maps.extension.style.expressions.generated.Expression
-import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
+import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
+import com.mapbox.maps.plugin.PuckBearing
 import com.mapbox.maps.plugin.animation.flyTo
 import com.mapbox.maps.plugin.annotation.AnnotationPlugin
 import com.mapbox.maps.plugin.annotation.annotations
@@ -66,34 +74,17 @@ import com.mapbox.maps.plugin.annotation.generated.createCircleAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
-import com.mapbox.maps.toCameraOptions
-import com.mapbox.maps.plugin.locationcomponent.location
-import com.mapbox.maps.plugin.viewport.viewport
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
-import com.mapbox.maps.plugin.PuckBearing
+import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
-import java.lang.ref.WeakReference
 import java.math.RoundingMode
-import kotlin.math.round
+import java.sql.Timestamp
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentTransaction
-import com.google.android.material.navigation.NavigationView
-import java.sql.Timestamp
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import android.content.pm.PackageManager
-
-import com.mapbox.android.core.permissions.PermissionsListener
-import kotlinx.coroutines.delay
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -149,6 +140,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
     private val locationService : LocationService = LocationServiceFactory.getOrCreate()
     private var locationProvider: DeviceLocationProvider? = null
+    private lateinit var wifiManager: WifiManager
 
     private lateinit var drawerLayout: DrawerLayout
 
@@ -175,6 +167,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             requestLocationPermission()
         }
     }
+
 
 
     var runnable: Runnable = Runnable {
@@ -1737,6 +1730,8 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
             val actualTime = event.timestamp
             if (actualTime - lastUpdate > 400000000){
+                wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
+                val mac_address = wifiManager.connectionInfo.macAddress
                 val x=event.values[0]
                 val y= event.values[1]
                 val z= event.values[2]
@@ -1746,14 +1741,14 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                     val currentTimeMillis = System.currentTimeMillis()
                     val timeStamp = Timestamp(currentTimeMillis).toString()
                     text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
                     mqttHandler.publish("test/topic",serverMessage)
                     locationProvider?.getLastLocation { result ->
                         val currentTimeMillis = System.currentTimeMillis()
                         val timeStamp = Timestamp(currentTimeMillis).toString()
                         val latitude_GPS = result?.latitude
                         val longitude_GPS = result?.longitude
-                        mqttHandler.publish("test/topic", "GPS,$timeStamp,$latitude_GPS, $longitude_GPS")
+                        mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $latitude_GPS, $longitude_GPS")
                     }
 //
 
@@ -1768,7 +1763,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                     val currentTimeMillis = System.currentTimeMillis()
                     val timeStamp = Timestamp(currentTimeMillis).toString()
                     text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
                     mqttHandler.publish("test/topic",serverMessage)
                     lastUpdate = actualTime
                 }
