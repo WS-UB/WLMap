@@ -84,7 +84,6 @@ Kotlin and Android Studio are used to create the application on the Android plat
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [x] User can travel to any point within a room in Davis Hall.
-- [ ] 
 
 ### Data Readings sent to MQTT client
 - [x] GPS data is sent to MQTT server.
