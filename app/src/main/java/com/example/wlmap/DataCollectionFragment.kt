@@ -1749,7 +1749,9 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val comma= ", "
             b.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                
                 gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+             
             }
             //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
         }
