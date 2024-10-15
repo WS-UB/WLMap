@@ -10,7 +10,6 @@ import android.widget.Button
 import android.widget.EditText
 
 class SendDataFragment : Fragment() {
-
     private lateinit var serverIdInput: EditText
     private lateinit var userIdInput: EditText
     private lateinit var passwordInput: EditText
