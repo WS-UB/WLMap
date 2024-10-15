@@ -194,7 +194,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         b.id = View.generateViewId() // Generate a unique id for the button
         g= Button(requireContext())
         g.id = View.generateViewId()
-        g.text="gyroscope"
+        //g.text="gyroscope"
         setUpSensor()
 
         // To start the MQTT Handler -- You must have:
@@ -1681,11 +1681,11 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
-            server_data += message
-            server_data.forEach { info ->
-                Log.e("SERVER", info)
+            val server_runnable: Runnable = Runnable {
+                Log.e("SERVER", message)
             }
-            Log.e("SERVER", message)
+            val thread: Thread = Thread(server_runnable)
+            thread.start()
         }
     }
 
@@ -1720,7 +1720,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
-        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also{
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
@@ -1768,7 +1768,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                     lastUpdate = actualTime
                 }
             }
-
         }
 //        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
 //            val x=event.values[0]
