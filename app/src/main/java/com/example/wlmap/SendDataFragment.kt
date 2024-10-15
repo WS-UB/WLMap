@@ -59,7 +59,7 @@ class SendDataFragment : Fragment() {
             mqttHandler.publish("test/topic", message)
 
             // Log to confirm the message was sent
-            Log.i("MQTTPublish", "Published message: $message")
+            Log.i("MQTTPublish", "Message Sent:\n\n$message")
         }
 
         return view
