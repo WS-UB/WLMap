@@ -951,8 +951,8 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         // Set up action for sending user's location button
         buttonSendLocation.setOnClickListener(){
             Log.i("SendLoc", "Location Sent!")
-            mqttHandler.publish("test/topic", accreadings)
-            mqttHandler.publish("test/topic", gyroreadings)
+            mqttHandler.publish("test/topic", accreadings + gyroreadings)
+//            mqttHandler.publish("test/topic", gyroreadings)
         }
 
         // Set up action for confirming user's location button
@@ -1810,22 +1810,24 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val x=event.values[0]
             val y= event.values[1]
             val z= event.values[2]
-            val t="accelerator: "
+            val t="accelerator:"
             val comma= ", "
             g.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                accreadings = "$t $x, $y, $z\n"
+//                accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus("\n")
             }
         }
         if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
             val x=event.values[0]
             val y= event.values[1]
             val z= event.values[2]
-            val t="gyroscope: "
+            val t="gyroscope:"
             val comma= ", "
             b.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                  gyroreadings= "$t $x, $y, $z\n"
+//                gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus("\n")
             }
         }
     }

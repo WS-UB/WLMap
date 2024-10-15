@@ -47,12 +47,7 @@ class SendDataFragment : Fragment() {
             val comment = commentInput.text.toString()
 
             // Create a message string for the input data
-            val message = """
-                server_id: $serverID
-                user_id: $userID
-                password: $password
-                comment: $comment
-            """.trimIndent()
+            val message = "server_id: $serverID, user_id: $userID, password: $password, comment: $comment\n"
 
             // Publish the message to the MQTT topic
             mqttHandler.publish("test/topic", message)
