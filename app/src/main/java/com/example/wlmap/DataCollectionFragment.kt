@@ -75,10 +75,11 @@ import kotlin.math.sqrt
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
+import android.provider.Settings
 
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
-    private val serverUri = "tcp://128.205.221.173:8883" // Server address
+    private val serverUri = "tcp://128.205.218.189:1883" // Server address
     private val clientId = "001000"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
     private val STYLE_CUSTOM = "asset://style.json" // ???
@@ -127,6 +128,9 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
     private var floorSelected: Int = 0 //Determines the floor selected (1-3)
     private lateinit var drawerLayout: DrawerLayout
+    private var accreadings="t"
+    private var gyroreadings="g"
+    var deviceID = View.generateViewId()
 
     var runnable: Runnable = Runnable {
         initMQTTHandler()
@@ -149,7 +153,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         b.id = View.generateViewId() // Generate a unique id for the button
         g= Button(requireContext())
         g.id = View.generateViewId()
-        g.text="gyroscope"
+
         setUpSensor()
 
         // To start the MQTT Handler -- You must have:
@@ -215,7 +219,6 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         // Initializing drop down spinner and adding to ContentView container
         val spinner = initRoomSelector()
         container.addView(spinner)
-
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
             }
@@ -944,6 +947,8 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         // Set up action for sending user's location button
         buttonSendLocation.setOnClickListener(){
             Log.i("SendLoc", "Location Sent!")
+            mqttHandler.publish("test/topic", accreadings)
+            mqttHandler.publish("test/topic", gyroreadings)
         }
 
         // Set up action for confirming user's location button
@@ -1678,10 +1683,16 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private fun initMQTTHandler() {
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId)
-        mqttHandler.subscribe(serverTopic)
+        mqttHandler.subscribe("test/topic")
+        mqttHandler.subscribe("/deviceid")
         mqttHandler.onMessageReceived = { message ->
-            Log.e("SERVER", message)
+            val server_runnable: Runnable = Runnable {
+                Log.e("SERVER", message)
+            }
+            val thread: Thread = Thread(server_runnable)
+            thread.start()
         }
+        mqttHandler.publish("/deviceid",deviceID.toString())
     }
 
     private fun publishLocation(point: Point) {
@@ -1726,7 +1737,9 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val comma= ", "
             g.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
+            mqttHandler.publish("/deviceid" , deviceID.toString())
         }
         if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
             val x=event.values[0]
@@ -1736,7 +1749,11 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val comma= ", "
             b.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+
+                gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+
             }
+            //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
         }
     }
 

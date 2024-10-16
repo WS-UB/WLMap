@@ -1,11 +1,12 @@
 package com.example.wlmap
+
 import LocationPermissionHelper
 import android.R
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
-import android.content.Context.SENSOR_SERVICE
+import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Color
 import android.hardware.Sensor
@@ -13,11 +14,13 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.net.wifi.WifiManager
+import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.View
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
@@ -31,8 +34,12 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getSystemService
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import com.google.android.material.navigation.NavigationView
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
@@ -49,10 +56,11 @@ import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.ScreenBox
 import com.mapbox.maps.extension.style.expressions.generated.Expression
-import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.generated.FillLayer
+import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
+import com.mapbox.maps.plugin.PuckBearing
 import com.mapbox.maps.plugin.animation.flyTo
 import com.mapbox.maps.plugin.annotation.AnnotationPlugin
 import com.mapbox.maps.plugin.annotation.annotations
@@ -66,27 +74,21 @@ import com.mapbox.maps.plugin.annotation.generated.createCircleAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
+import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
+import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
-import java.lang.ref.WeakReference
 import java.math.RoundingMode
-import kotlin.math.round
+import java.sql.Timestamp
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentTransaction
-import com.google.android.material.navigation.NavigationView
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
-    private val serverUri = "tcp://128.205.221.173:8883" // Server address
+    private val serverUri = "tcp://128.205.218.189:1883" // Server address
     private val clientId = "001000"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
     private val STYLE_CUSTOM = "asset://style.json" // ???
@@ -100,7 +102,9 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private val LATITUDE = 43.0028 // Starting latitude
     private val LONGITUDE = -78.7873  // Starting longitude
     private val ZOOM = 17.9 // Starting zoom
+    private var server_data = emptyList<String>()
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
+    private var lastUpdate: Long = 0
 
 
     private lateinit var mqttHandler: MqttHandler
@@ -120,6 +124,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private lateinit var b :Button
     private lateinit var g: Button
     private lateinit var userLastLocation: Point
+    private lateinit var list_of_Locations: MutableList<Location>
 
     //private var curRoute: List<Point> = null
     private var roomHighlighted = false
@@ -132,11 +137,45 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private var prevPoint: Boolean = false
     private var lastLocation: Pair<Double, Double>? = null //Holds the longitude and latitude of the user's last location
     private var floorSelected: Int = 0 //Determines the floor selected (1-3)
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1
+    private val locationService : LocationService = LocationServiceFactory.getOrCreate()
+    private var locationProvider: DeviceLocationProvider? = null
+    private lateinit var wifiManager: WifiManager
+
     private lateinit var drawerLayout: DrawerLayout
+
+
+    private fun requestLocationPermission() {
+        ActivityCompat.requestPermissions(
+            requireActivity(),
+            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION),
+            LOCATION_PERMISSION_REQUEST_CODE
+        )
+    }
+
+
+    private fun checkPermissionsAndRequest() {
+        if (ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Permission is not granted, request for permission
+            requestLocationPermission()
+        }
+    }
+
+
 
     var runnable: Runnable = Runnable {
         initMQTTHandler()
     }
+
+
+
 
     // This function handles navigation item selections from a navigation drawer.
     // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
@@ -155,7 +194,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         b.id = View.generateViewId() // Generate a unique id for the button
         g= Button(requireContext())
         g.id = View.generateViewId()
-        g.text="gyroscope"
+        //g.text="gyroscope"
         setUpSensor()
 
         // To start the MQTT Handler -- You must have:
@@ -176,8 +215,42 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
         // Set ContentView to the RelativeLayout container
         container.addView(mapView)
+        checkPermissionsAndRequest()
+
+        with(mapView) {
+            location.locationPuck = createDefault2DPuck(withBearing = true)
+            location.enabled = true
+            location.puckBearing = PuckBearing.COURSE
+        }
+
+        val request = LocationProviderRequest.Builder()
+            .interval(IntervalSettings.Builder().interval(0L).minimumInterval(0L).maximumInterval(0L).build())
+            .displacement(0F)
+            .accuracy(AccuracyLevel.HIGHEST)
+            .build();
+
+        val result = locationService.getDeviceLocationProvider(request)
+        if (result.isValue) {
+            locationProvider = result.value!!
+        } else {
+            Log.e("SERVER", "Failed to get device location provider")
+        }
+
+        val locationObserver = object: LocationObserver {
+            override fun onLocationUpdateReceived(locations: MutableList<Location>) {
+                val currentTimeMillis = System.currentTimeMillis()
+                val timeStamp = Timestamp(currentTimeMillis).toString()
+                val latitude_GPS = locations[0].latitude
+                val longitude_GPS = locations[0].longitude
+                mqttHandler.publish("test/topic", "GPS,$timeStamp,$latitude_GPS, $longitude_GPS")
+            }
+        }
+
+
+//        locationProvider?.addLocationObserver(locationObserver)
 
         initManagers()
+
 
         // Initialize navigation directions popup
         initNavigationPopup()
@@ -1608,14 +1681,20 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
-            Log.e("SERVER", message)
+            val server_runnable: Runnable = Runnable {
+                Log.e("SERVER", message)
+            }
+            val thread: Thread = Thread(server_runnable)
+            thread.start()
         }
     }
 
     private fun publishLocation(point: Point) {
         val lat = point.latitude()
         val long = point.longitude()
-        val serverMessage = "ack,$long,$lat"
+        val currentTimeMillis = System.currentTimeMillis()
+        val timeStamp = Timestamp(currentTimeMillis).toString()
+        val serverMessage = "point,$long,$lat,$timeStamp"
         mqttHandler.publish("test/topic",serverMessage)
     }
     override fun onDestroy() {
@@ -1634,13 +1713,14 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     }
     private fun setUpSensor() {
         // Use the correct context to get the system service
+        val READINGRATE = 5000000
         sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
-        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also{
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
@@ -1648,26 +1728,63 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
     override fun onSensorChanged(event: SensorEvent?) {
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="accelerator: "
-            val comma= ", "
-            b.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            val actualTime = event.timestamp
+            if (actualTime - lastUpdate > 400000000){
+                wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
+                val mac_address = wifiManager.connectionInfo.macAddress
+                val x=event.values[0]
+                val y= event.values[1]
+                val z= event.values[2]
+                val t="accelerator,"
+                val comma= ", "
+                b.apply{
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
+                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+                    mqttHandler.publish("test/topic",serverMessage)
+                    locationProvider?.getLastLocation { result ->
+                        val currentTimeMillis = System.currentTimeMillis()
+                        val timeStamp = Timestamp(currentTimeMillis).toString()
+                        val latitude_GPS = result?.latitude
+                        val longitude_GPS = result?.longitude
+                        mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $latitude_GPS, $longitude_GPS")
+                    }
+//
+
+
+                } //The way the readings are set up to be published is just a test
+
+                g.apply{
+                    val x= 0.0
+                    val y= 0.0
+                    val z= 0.0
+                    val t="gyroscope,"
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
+                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+                    mqttHandler.publish("test/topic",serverMessage)
+                    lastUpdate = actualTime
+                }
             }
         }
-        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="gyroscope: "
-            val comma= ", "
-            g.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-            }
-        }
+//        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+//            val x=event.values[0]
+//            val y= event.values[1]
+//            val z= event.values[2]
+//            val t="gyroscope: "
+//            val comma= ", "
+//            g.apply{
+//                val currentTimeMillis = System.currentTimeMillis()
+//                val timeStamp = Timestamp(currentTimeMillis).toString()
+//                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+//                mqttHandler.publish("test/topic",serverMessage)
+//            }
+//        }
     }
+
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
         return
