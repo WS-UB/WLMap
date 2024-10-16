@@ -75,13 +75,14 @@ import kotlin.math.sqrt
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import java.io.IOException
-import android.provider.Settings
+import kotlinx.coroutines.*
+//import okhttp3.Call
+//import okhttp3.Callback
+//import okhttp3.OkHttpClient
+//import okhttp3.Request
+//import okhttp3.Response
+//import java.io.IOException
+//import android.provider.Settings
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
     private val serverUri = "tcp://128.205.218.189:1883" // Server address
@@ -1697,7 +1698,9 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val thread: Thread = Thread(server_runnable)
             thread.start()
         }
-//        mqttHandler.publish("/deviceid",deviceID.toString())
+        Thread {
+            mqttHandler.publish("/deviceid", deviceID.toString())
+        }.start()
     }
 
     private fun publishLocation(point: Point) {
@@ -1732,35 +1735,51 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         }
     }
 
+    private var lastPublishTime = 0L
+    private val publishInterval = 20L // 1 second
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
-            val x = event.values[0]
-            val y = event.values[1]
-            val z = event.values[2]
-            val t = "accelerator:"
-            val comma= ", "
-            g.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                accreadings = "$t $x, $y, $z\n"
-//              accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus("\n")
+        val currentTime = System.currentTimeMillis()
+
+        if (currentTime - lastPublishTime >= publishInterval) {
+            if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+                val x = event.values[0]
+                val y = event.values[1]
+                val z = event.values[2]
+                val t = "accelerator:"
+                val comma = ", "
+
+                g.apply {
+                    text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    accreadings = "$t $x, $y, $z\n"
+                }
             }
-//            mqttHandler.publish("/deviceid" , deviceID.toString())
-        }
-        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
-            val x = event.values[0]
-            val y = event.values[1]
-            val z = event.values[2]
-            val t = "gyroscope:"
-            val comma= ", "
-            b.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                gyroreadings= "$t $x, $y, $z\n"
-//              gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus("\n")
+
+            if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
+                val x = event.values[0]
+                val y = event.values[1]
+                val z = event.values[2]
+                val t = "gyroscope:"
+                val comma = ", "
+
+                b.apply {
+                    text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    gyroreadings = "$t $x, $y, $z\n"
+                }
+                GlobalScope.launch(Dispatchers.IO) {
+                    mqttHandler.publish("/deviceid", deviceID.toString())
+                }
             }
-            //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
+
+//            GlobalScope.launch(Dispatchers.IO) {
+//                mqttHandler.publish("/deviceid", deviceID.toString())
+//            }
+
+            lastPublishTime = currentTime
         }
     }
+
+
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
         return
