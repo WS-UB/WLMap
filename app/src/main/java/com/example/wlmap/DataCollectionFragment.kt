@@ -75,6 +75,12 @@ import kotlin.math.sqrt
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import java.io.IOException
 import android.provider.Settings
 
 
@@ -947,8 +953,8 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         // Set up action for sending user's location button
         buttonSendLocation.setOnClickListener(){
             Log.i("SendLoc", "Location Sent!")
-            mqttHandler.publish("test/topic", accreadings)
-            mqttHandler.publish("test/topic", gyroreadings)
+            mqttHandler.publish("test/topic", accreadings + gyroreadings)
+//            mqttHandler.publish("test/topic", gyroreadings)
         }
 
         // Set up action for confirming user's location button
@@ -1681,8 +1687,10 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     }
 
     private fun initMQTTHandler() {
+        val esUrl = "http://128.205.218.189:9200"  // Change this to 10.0.2.2 if using an emulator
+        val esIndex = "mqtt-data"  // Index name in Elasticsearch
         mqttHandler = MqttHandler()
-        mqttHandler.connect(serverUri, clientId)
+        mqttHandler.connect(serverUri, clientId, esUrl, esIndex)
         mqttHandler.subscribe("test/topic")
         mqttHandler.subscribe("/deviceid")
         mqttHandler.onMessageReceived = { message ->
@@ -1733,11 +1741,12 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val x=event.values[0]
             val y= event.values[1]
             val z= event.values[2]
-            val t="accelerator: "
+            val t="accelerator:"
             val comma= ", "
             g.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                accreadings = "$t $x, $y, $z\n"
+//                accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus("\n")
             }
             mqttHandler.publish("/deviceid" , deviceID.toString())
         }
@@ -1745,15 +1754,13 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val x=event.values[0]
             val y= event.values[1]
             val z= event.values[2]
-            val t="gyroscope: "
+            val t="gyroscope:"
             val comma= ", "
             b.apply{
                 text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                
-                gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-             
+                  gyroreadings= "$t $x, $y, $z\n"
+//                gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus("\n")
             }
-            //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
         }
     }
 
