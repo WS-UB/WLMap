@@ -37,6 +37,9 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import com.google.android.material.navigation.NavigationView
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
 import com.mapbox.common.location.IntervalSettings
@@ -82,9 +85,6 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.fragment.app.Fragment
-import com.google.android.material.navigation.NavigationView
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -174,6 +174,9 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         initMQTTHandler()
     }
 
+
+
+
     // This function handles navigation item selections from a navigation drawer.
     // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -247,6 +250,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 //        locationProvider?.addLocationObserver(locationObserver)
 
         initManagers()
+
 
         // Initialize navigation directions popup
         initNavigationPopup()
@@ -1673,10 +1677,8 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     }
 
     private fun initMQTTHandler() {
-        val esUrl = "http://128.205.218.189:9200"  // Change this to 10.0.2.2 if using an emulator
-        val esIndex = "mqtt-data"  // Index name in Elasticsearch
         mqttHandler = MqttHandler()
-        mqttHandler.connect(serverUri, clientId, esUrl, esIndex)
+        mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
             val server_runnable: Runnable = Runnable {
@@ -1782,6 +1784,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 //            }
 //        }
     }
+
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
         return
