@@ -1621,61 +1621,9 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         }
     }
 
-    class ElasticsearchHandler(private val esUrl: String) {
-        private val okHttpClient = OkHttpClient()
-
-        // Check document count
-        fun checkDocumentCount(index: String) {
-            val url = "$esUrl/$index/_count"
-            val request = Request.Builder()
-                .url(url)
-                .build()
-
-            okHttpClient.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    println("Error checking document count: ${e.message}")
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    response.use {
-                        if (!response.isSuccessful) throw IOException("Unexpected code $response")
-
-                        val responseBody = response.body?.string()
-                        println("Document count in index '$index': $responseBody")
-                    }
-                }
-            })
-        }
-
-        // Retrieve documents from Elasticsearch
-        fun retrieveDocuments(index: String) {
-            val url = "$esUrl/$index/_search?pretty"
-            val request = Request.Builder()
-                .url(url)
-                .build()
-
-            okHttpClient.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    println("Error retrieving documents: ${e.message}")
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    response.use {
-                        if (!response.isSuccessful) throw IOException("Unexpected code $response")
-
-                        val responseBody = response.body?.string()
-                        println("Documents in index '$index': $responseBody")
-                    }
-                }
-            })
-        }
-    }
-
     private fun initMQTTHandler() {
-        val esUrl = "http://128.205.218.189:9200"  // Change this to 10.0.2.2 if using an emulator
-        val esIndex = "mqtt-data"  // Index name in Elasticsearch
         mqttHandler = MqttHandler()
-        mqttHandler.connect(serverUri, clientId, esUrl, esIndex)
+        mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
             val server_runnable: Runnable = Runnable {
@@ -1686,15 +1634,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         }
         // Publish a test message
         publishTestMessage(mqttHandler)
-
-        // Initialize ElasticsearchHandler
-        val elasticsearchHandler = ElasticsearchHandler(esUrl)
-
-        // Check the document count in Elasticsearch
-        elasticsearchHandler.checkDocumentCount(esIndex)
-
-        // Retrieve documents from Elasticsearch
-        elasticsearchHandler.retrieveDocuments(esIndex)
     }
 
     private fun publishLocation(point: Point) {
@@ -1730,29 +1669,26 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         }
     }
 
-
     override fun onSensorChanged(event: SensorEvent?) {
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="accelerator: "
-            val comma= ", "
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            val t = "accelerator: "
             b.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                text= "$t $x, $y, $z\n"
             }
-            mqttHandler.publish("test/topic", t.plus(x).plus(comma).plus(y).plus(comma).plus(z))
+            mqttHandler.publish("test/topic", "$t $x, $y, $z\n")
         }
         if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="gyroscope: "
-            val comma= ", "
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            val t = "gyroscope: "
             g.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                text="$t $x, $y, $z\n"
             }
-            mqttHandler.publish("test/topic", t.plus(x).plus(comma).plus(y).plus(comma).plus(z))
+            mqttHandler.publish("test/topic", "$t $x, $y, $z\n")
         }
     }
 

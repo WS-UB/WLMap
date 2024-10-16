@@ -34,9 +34,7 @@ class SendDataFragment : Fragment() {
         mqttHandler = MqttHandler()
         mqttHandler.connect(
             brokerUrl = "tcp://128.205.218.189:1883", // or "tcp://<IP>:1883"
-            clientId = "AndroidClient",
-            esUrl = "",  // Elasticsearch not needed here
-            esIndex = ""
+            clientId = "001000",
         )
 
         sendDataButton.setOnClickListener {
