@@ -1697,7 +1697,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val thread: Thread = Thread(server_runnable)
             thread.start()
         }
-        mqttHandler.publish("/deviceid",deviceID.toString())
+//        mqttHandler.publish("/deviceid",deviceID.toString())
     }
 
     private fun publishLocation(point: Point) {
@@ -1745,7 +1745,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                 accreadings = "$t $x, $y, $z\n"
 //              accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus("\n")
             }
-            mqttHandler.publish("/deviceid" , deviceID.toString())
+//            mqttHandler.publish("/deviceid" , deviceID.toString())
         }
         if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
             val x = event.values[0]
