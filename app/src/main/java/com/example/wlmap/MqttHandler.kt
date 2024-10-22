@@ -45,10 +45,14 @@ class MqttHandler {
                 // Log successful connection
                 println("Connected to broker: $brokerUrl")
 
-            } catch (e: MqttException) {
-                e.printStackTrace()
-            }
-        }.start() // Run the connection in a background thread
+            // Connect and subscribe
+            //client?.connect(connectOptions)
+            client!!.connect()
+            client?.subscribe("coordinates/topic")
+
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
     }
 
     fun disconnect() {
