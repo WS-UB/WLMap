@@ -42,7 +42,10 @@ class MqttHandler {
                 }
             })
 
+            // Connect and subscribe
+            //client?.connect(connectOptions)
             client!!.connect()
+            client?.subscribe("coordinates/topic")
 
         } catch (e: MqttException) {
             e.printStackTrace()

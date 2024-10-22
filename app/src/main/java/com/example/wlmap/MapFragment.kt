@@ -194,7 +194,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         b.id = View.generateViewId() // Generate a unique id for the button
         g= Button(requireContext())
         g.id = View.generateViewId()
-        g.text="gyroscope"
+        //g.text="gyroscope"
         setUpSensor()
 
         // To start the MQTT Handler -- You must have:
@@ -1681,11 +1681,11 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.onMessageReceived = { message ->
-            server_data += message
-            server_data.forEach { info ->
-                Log.e("SERVER", info)
+            val server_runnable: Runnable = Runnable {
+                Log.e("SERVER", message)
             }
-            Log.e("SERVER", message)
+            val thread: Thread = Thread(server_runnable)
+            thread.start()
         }
     }
 
@@ -1720,7 +1720,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
-        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also{
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
@@ -1728,62 +1728,28 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
     override fun onSensorChanged(event: SensorEvent?) {
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
-            val actualTime = event.timestamp
-            if (actualTime - lastUpdate > 400000000){
-                wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
-                val mac_address = wifiManager.connectionInfo.macAddress
-                val x=event.values[0]
-                val y= event.values[1]
-                val z= event.values[2]
-                val t="accelerator,"
-                val comma= ", "
-                b.apply{
-                    val currentTimeMillis = System.currentTimeMillis()
-                    val timeStamp = Timestamp(currentTimeMillis).toString()
-                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                    mqttHandler.publish("test/topic",serverMessage)
-                    locationProvider?.getLastLocation { result ->
-                        val currentTimeMillis = System.currentTimeMillis()
-                        val timeStamp = Timestamp(currentTimeMillis).toString()
-                        val latitude_GPS = result?.latitude
-                        val longitude_GPS = result?.longitude
-                        mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $latitude_GPS, $longitude_GPS")
-                    }
-//
-
-
-                } //The way the readings are set up to be published is just a test
-
-                g.apply{
-                    val x= 0.0
-                    val y= 0.0
-                    val z= 0.0
-                    val t="gyroscope,"
-                    val currentTimeMillis = System.currentTimeMillis()
-                    val timeStamp = Timestamp(currentTimeMillis).toString()
-                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                    mqttHandler.publish("test/topic",serverMessage)
-                    lastUpdate = actualTime
-                }
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="accelerator: "
+            val comma= ", "
+            g.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
             }
-
         }
-//        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
-//            val x=event.values[0]
-//            val y= event.values[1]
-//            val z= event.values[2]
-//            val t="gyroscope: "
-//            val comma= ", "
-//            g.apply{
-//                val currentTimeMillis = System.currentTimeMillis()
-//                val timeStamp = Timestamp(currentTimeMillis).toString()
-//                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-//                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
-//                mqttHandler.publish("test/topic",serverMessage)
-//            }
-//        }
+        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+            val x=event.values[0]
+            val y= event.values[1]
+            val z= event.values[2]
+            val t="gyroscope: "
+            val comma= ", "
+            b.apply{
+                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+
+
+            }
+            //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
+        }
     }
 
 
