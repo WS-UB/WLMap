@@ -1745,7 +1745,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
                 g.apply {
                     text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    accreadings = "$t $x, $y, $z\n"
+                    accreadings = "$t, $x, $y, $z\n"
                 }
             }
 
@@ -1758,7 +1758,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
                 b.apply {
                     text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    gyroreadings = "$t $x, $y, $z\n"
+                    gyroreadings = "$t, $x, $y, $z\n"
                 }
                 mqttHandler.publish("/deviceid", deviceID.toString())
             }
