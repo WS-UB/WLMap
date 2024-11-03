@@ -82,6 +82,7 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 import android.provider.Settings
+import org.json.JSONArray
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
     private val serverUri = "tcp://128.205.218.189:1883" // Server address
@@ -1674,6 +1675,39 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     }
 
     private fun updateLocation(newLatitude: Double, newLongitude: Double): Pair<Double, Double> {
+        var latestMessage:String? = null;
+        mqttHandler.subscribe("coordinate/topic")
+
+        mqttHandler.onMessageReceived = { message ->
+            val serverRunnable: Runnable = Runnable {
+                latestMessage = message // Store the received message in the variable
+                Log.e("SERVER", "Received message: $latestMessage") // Log the message
+
+                // Extract coordinates from the message and update lastLocation
+                try {
+                    // Assuming the message is a JSON string in the format: "[[latitude, longitude]]"
+                    val jsonArray = JSONArray(latestMessage) // Parse the outer array
+                    if (jsonArray.length() > 0) {
+                        val coordinatesArray = jsonArray.getJSONArray(0) // Get the first pair
+                        if (coordinatesArray.length() == 2) {
+                            // Extract latitude and longitude
+                            val receivedLatitude = coordinatesArray.getDouble(0)
+                            val receivedLongitude = coordinatesArray.getDouble(1)
+                            // Update lastLocation with the received coordinates
+                            lastLocation = Pair(receivedLatitude, receivedLongitude)
+                            Log.d("SERVER", "Updated lastLocation to: $lastLocation")
+                        } else {
+                            Log.e("SERVER", "Invalid coordinates format: $latestMessage")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SERVER", "Failed to parse message: $latestMessage", e)
+                }
+            }
+            val thread: Thread = Thread(serverRunnable)
+            thread.start()
+        }
+
         if (lastLocation == null) {
             lastLocation = Pair(newLatitude, newLongitude)
             return lastLocation!!

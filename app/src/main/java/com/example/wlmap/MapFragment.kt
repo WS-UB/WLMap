@@ -78,6 +78,7 @@ import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.toCameraOptions
 import org.eclipse.paho.client.mqttv3.MqttException
+import org.json.JSONArray
 import java.math.RoundingMode
 import java.sql.Timestamp
 import kotlin.math.atan2
@@ -1665,6 +1666,39 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     }
 
     private fun updateLocation(newLatitude: Double, newLongitude: Double): Pair<Double, Double> {
+        var latestMessage:String? = null;
+        mqttHandler.subscribe("coordinate/topic")
+
+        mqttHandler.onMessageReceived = { message ->
+            val serverRunnable: Runnable = Runnable {
+                latestMessage = message // Store the received message in the variable
+                Log.e("SERVER", "Received message: $latestMessage") // Log the message
+
+                // Extract coordinates from the message and update lastLocation
+                try {
+                    // Assuming the message is a JSON string in the format: "[[latitude, longitude]]"
+                    val jsonArray = JSONArray(latestMessage) // Parse the outer array
+                    if (jsonArray.length() > 0) {
+                        val coordinatesArray = jsonArray.getJSONArray(0) // Get the first pair
+                        if (coordinatesArray.length() == 2) {
+                            // Extract latitude and longitude
+                            val receivedLatitude = coordinatesArray.getDouble(0)
+                            val receivedLongitude = coordinatesArray.getDouble(1)
+                            // Update lastLocation with the received coordinates
+                            lastLocation = Pair(receivedLatitude, receivedLongitude)
+                            Log.d("SERVER", "Updated lastLocation to: $lastLocation")
+                        } else {
+                            Log.e("SERVER", "Invalid coordinates format: $latestMessage")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SERVER", "Failed to parse message: $latestMessage", e)
+                }
+            }
+            val thread: Thread = Thread(serverRunnable)
+            thread.start()
+        }
+
         if (lastLocation == null) {
             lastLocation = Pair(newLatitude, newLongitude)
             return lastLocation!!
