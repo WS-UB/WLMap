@@ -40,6 +40,7 @@ This app can provide the following:
    - An interactable UI.
    - Navigational map option.
    - Data collection map option.
+   - IMU and GPS user data is collected and streamed server-side.
 
 
 ## Tools
@@ -78,6 +79,7 @@ Kotlin and Android Studio are used to create the application on the Android plat
 
 ### User readings
 - [x] User can view and record gyroscope and accelerometer readings.
+- [x] User gyroscope, accelerometer, and GPS data are streamed to the MQTT Wiloc server.
 
 ### User click-ability/user search navigation
 - [x] User can select any point in Davis Hall and can get navigational directions.
