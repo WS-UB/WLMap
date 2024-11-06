@@ -6,12 +6,14 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
 import android.content.Context.SENSOR_SERVICE
+import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -75,7 +77,22 @@ import kotlin.math.sqrt
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
+import kotlinx.coroutines.*
+//import okhttp3.Call
+//import okhttp3.Callback
+//import okhttp3.OkHttpClient
+//import okhttp3.Request
+//import okhttp3.Response
+//import java.io.IOException
+//import android.provider.Settings
 import android.provider.Settings
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.mapbox.maps.plugin.PuckBearing
+import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
+import com.mapbox.maps.plugin.locationcomponent.location
+import org.json.JSONArray
+import java.sql.Timestamp
 
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -94,6 +111,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private val LONGITUDE = -78.7873  // Starting longitude
     private val ZOOM = 17.9 // Starting zoom
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
+    private var lastUpdate: Long = 0
 
 
     private lateinit var mqttHandler: MqttHandler
@@ -130,7 +148,34 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private lateinit var drawerLayout: DrawerLayout
     private var accreadings="t"
     private var gyroreadings="g"
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1
+    private val locationService : LocationService = LocationServiceFactory.getOrCreate()
+    private var locationProvider: DeviceLocationProvider? = null
+    private lateinit var wifiManager: WifiManager
     var deviceID = View.generateViewId()
+
+    private fun requestLocationPermission() {
+        ActivityCompat.requestPermissions(
+            requireActivity(),
+            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION),
+            LOCATION_PERMISSION_REQUEST_CODE
+        )
+    }
+
+
+    private fun checkPermissionsAndRequest() {
+        if (ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Permission is not granted, request for permission
+            requestLocationPermission()
+        }
+    }
 
     var runnable: Runnable = Runnable {
         initMQTTHandler()
@@ -176,6 +221,26 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
 
         // Set ContentView to the RelativeLayout container
         container.addView(mapView)
+        checkPermissionsAndRequest()
+
+        with(mapView) {
+            location.locationPuck = createDefault2DPuck(withBearing = true)
+            location.enabled = true
+            location.puckBearing = PuckBearing.COURSE
+        }
+
+        val request = LocationProviderRequest.Builder()
+            .interval(IntervalSettings.Builder().interval(0L).minimumInterval(0L).maximumInterval(0L).build())
+            .displacement(0F)
+            .accuracy(AccuracyLevel.HIGHEST)
+            .build();
+
+        val result = locationService.getDeviceLocationProvider(request)
+        if (result.isValue) {
+            locationProvider = result.value!!
+        } else {
+            Log.e("SERVER", "Failed to get device location provider")
+        }
 
         initManagers()
 
@@ -947,8 +1012,8 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         // Set up action for sending user's location button
         buttonSendLocation.setOnClickListener(){
             Log.i("SendLoc", "Location Sent!")
-            mqttHandler.publish("test/topic", accreadings)
-            mqttHandler.publish("test/topic", gyroreadings)
+            mqttHandler.publish("test/topic", accreadings + gyroreadings)
+//            mqttHandler.publish("test/topic", gyroreadings)
         }
 
         // Set up action for confirming user's location button
@@ -1669,6 +1734,39 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     }
 
     private fun updateLocation(newLatitude: Double, newLongitude: Double): Pair<Double, Double> {
+        var latestMessage:String? = null;
+        mqttHandler.subscribe("coordinate/topic")
+
+        mqttHandler.onMessageReceived = { message ->
+            val serverRunnable: Runnable = Runnable {
+                latestMessage = message // Store the received message in the variable
+                Log.e("SERVER", "Received message: $latestMessage") // Log the message
+
+                // Extract coordinates from the message and update lastLocation
+                try {
+                    // Assuming the message is a JSON string in the format: "[[latitude, longitude]]"
+                    val jsonArray = JSONArray(latestMessage) // Parse the outer array
+                    if (jsonArray.length() > 0) {
+                        val coordinatesArray = jsonArray.getJSONArray(0) // Get the first pair
+                        if (coordinatesArray.length() == 2) {
+                            // Extract latitude and longitude
+                            val receivedLatitude = coordinatesArray.getDouble(0)
+                            val receivedLongitude = coordinatesArray.getDouble(1)
+                            // Update lastLocation with the received coordinates
+                            lastLocation = Pair(receivedLatitude, receivedLongitude)
+                            Log.d("SERVER", "Updated lastLocation to: $lastLocation")
+                        } else {
+                            Log.e("SERVER", "Invalid coordinates format: $latestMessage")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SERVER", "Failed to parse message: $latestMessage", e)
+                }
+            }
+            val thread: Thread = Thread(serverRunnable)
+            thread.start()
+        }
+
         if (lastLocation == null) {
             lastLocation = Pair(newLatitude, newLongitude)
             return lastLocation!!
@@ -1727,35 +1825,68 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         }
     }
 
-
     override fun onSensorChanged(event: SensorEvent?) {
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="accelerator: "
-            val comma= ", "
-            g.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+            val actualTime = event.timestamp
+            if (actualTime - lastUpdate > 400000000){
+                wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
+                val mac_address = wifiManager.connectionInfo.macAddress
+                val x=event.values[0]
+                val y= event.values[1]
+                val z= event.values[2]
+                val t="accelerator,"
+                val comma= ", "
                 accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-            }
-            mqttHandler.publish("/deviceid" , deviceID.toString())
-        }
-        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="gyroscope: "
-            val comma= ", "
-            b.apply{
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                b.apply{
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
+                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+                    mqttHandler.publish("test/topic",serverMessage)
+                    locationProvider?.getLastLocation { result ->
+                        val currentTimeMillis = System.currentTimeMillis()
+                        val timeStamp = Timestamp(currentTimeMillis).toString()
+                        val latitude_GPS = result?.latitude
+                        val longitude_GPS = result?.longitude
+                        mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $latitude_GPS, $longitude_GPS")
+                    }
+//
 
-                gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
 
+                } //The way the readings are set up to be published is just a test
+
+                g.apply{
+                    val x= 0.0
+                    val y= 0.0
+                    val z= 0.0
+                    val t="gyroscope,"
+                    gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
+                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+                    mqttHandler.publish("test/topic",serverMessage)
+                    lastUpdate = actualTime
+                }
             }
             //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
         }
+//        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+//            val x=event.values[0]
+//            val y= event.values[1]
+//            val z= event.values[2]
+//            val t="gyroscope: "
+//            val comma= ", "
+//            g.apply{
+//                val currentTimeMillis = System.currentTimeMillis()
+//                val timeStamp = Timestamp(currentTimeMillis).toString()
+//                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+//                mqttHandler.publish("test/topic",serverMessage)
+//            }
+//        }
     }
+
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
         return

@@ -33,7 +33,7 @@ class RateConfidenceFragment : DialogFragment() {
             val ratingScore = confidenceScore.rating  // Get the rating from the RatingBar
 
             // Print out the rating and location (you can also use Log.i or Log.d)
-            Log.i("Test Rating", "Location: $locationText, Rating Score: $ratingScore")
+            Log.i("Test Rating", "Location: $locationText\nRating Score: $ratingScore")
         }
 
         return view

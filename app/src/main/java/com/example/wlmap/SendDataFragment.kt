@@ -10,12 +10,12 @@ import android.widget.Button
 import android.widget.EditText
 
 class SendDataFragment : Fragment() {
-
     private lateinit var serverIdInput: EditText
     private lateinit var userIdInput: EditText
     private lateinit var passwordInput: EditText
     private lateinit var commentInput: EditText
     private lateinit var sendDataButton: Button
+    private lateinit var mqttHandler: MqttHandler  // Declare as lateinit
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -31,14 +31,28 @@ class SendDataFragment : Fragment() {
         commentInput = view.findViewById(R.id.fill_comment)
         sendDataButton = view.findViewById(R.id.send_data_button)
 
+        // Initialize MQTT handler and connect to the broker
+        mqttHandler = MqttHandler()
+        mqttHandler.connect(
+            brokerUrl = "tcp://128.205.218.189:1883", // or "tcp://<IP>:1883"
+            clientId = "001000",
+        )
+
         sendDataButton.setOnClickListener {
+            // Get the input values
             val serverID = serverIdInput.text.toString()
             val userID = userIdInput.text.toString()
             val password = passwordInput.text.toString()
             val comment = commentInput.text.toString()
 
-            // Print out the inputted information on the log to see if it's working or not.
-            Log.i("Test Info", "Server ID: $serverID, User ID: $userID, Password: $password, Comment: $comment")
+            // Create a message string for the input data
+            val message = "server_id: $serverID\nuser_id: $userID\npassword: $password\ncomment: $comment"
+
+            // Publish the message to the MQTT topic
+            mqttHandler.publish("test/topic", message)
+
+            // Log to confirm the message was sent
+            Log.i("MQTTPublish", "Message Sent:\n\n$message")
         }
 
         return view
