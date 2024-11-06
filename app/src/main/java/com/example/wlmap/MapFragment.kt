@@ -125,8 +125,8 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private lateinit var g: Button
     private lateinit var userLastLocation: Point
     private lateinit var list_of_Locations: MutableList<Location>
-    private var accreadings="t"
-    private var gyroreadings="g"
+    private var accreadings="0, 0, 0, 0"
+    private var gyroreadings="0, 0, 0, 0"
     var deviceID = View.generateViewId()
 
     //private var curRoute: List<Point> = null
@@ -243,9 +243,10 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             override fun onLocationUpdateReceived(locations: MutableList<Location>) {
                 val currentTimeMillis = System.currentTimeMillis()
                 val timeStamp = Timestamp(currentTimeMillis).toString()
-                val latitude_GPS = locations[0].latitude
-                val longitude_GPS = locations[0].longitude
-                mqttHandler.publish("test/topic", "GPS,$timeStamp,$latitude_GPS, $longitude_GPS")
+                val userLocation = Point.fromLngLat(locations[0].longitude, locations[0].latitude)
+                val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
+                val accel_data: List<Double> = listOf(accreadings.split(",")[1].toDouble(), accreadings.split(",")[2].toDouble(), accreadings.split(",")[3].toDouble())
+                val gyro_data: List<Double> = listOf(gyroreadings.split(",")[1].toDouble(), gyroreadings.split(",")[2].toDouble(), gyroreadings.split(",")[3].toDouble())
             }
         }
 
