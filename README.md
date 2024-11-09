@@ -4,6 +4,14 @@
 
 This branch implements the sending of IMU (gyroscope and accelerometer) and GPS data to the WILOC MQTT server for the WLMap application. The goal of this feature is to send IMU and GPS data along with a timestamp (Year-Month-Day, Hour-Minute-Second.Millisecond --> i.e. 2024-10-6 18:58:31.297) and device MAC address, which the data will be sent to the WILOC MQTT server. In the backend, the IMU and GPS data that was sent will be paired and synchronized with incoming WiFi data within 100ms of each other, which will be used for data collection.
 
+## Key Changes
+This feature introduces the following changes:
+
+   - A user location observer that obtains GPS location information (latitude and longitude).
+   - GPS data alongside a timestamp (Year-Month-Day, Hour-Minute-Second.Millisecond --> i.e. 2024-10-6 18:58:31.297) is sent to the WILOC MQTT server.
+   - IMU (accelerometer and gyroscope) data alongside a timestamp (Year-Month-Day, Hour-Minute-Second.Millisecond --> i.e. 2024-10-6 18:58:31.297) is sent to the WILOC MQTT server.
+   - The device MAC address is sent to the WILOC MQTT server (Helps differentiate different devices during data collection).
+
 ## Problem Definition
 
 We aim to create a stable Android mobile application for indoor navigation and WiFi-based data collection. This semester, we will focus on resolving technical issues with the data collection app, enhancing the user interface, and integrating server-side data processing using AWS. Additionally, we will develop a functional navigational interface similar to Google Maps, enabling users to track their indoor location within large buildings like malls and airports. In the long term, we aspire to deploy a fully functional, scalable system that enables seamless indoor navigation by utilizing WiFi signals and real-time data collection. By leveraging machine learning models, we will enhance accuracy in indoor positioning, ensuring privacy and efficiency through the use of hashed user data. Our goal is to provide a robust and open-source platform that can be adapted for various large-scale indoor environments.
@@ -29,15 +37,6 @@ Our current technology and development plans include:
    - Kotlin: Watch video tutorials and read documentation for better understanding.
    - UI/UX design: Watch video tutorials and refer to Figma UI outline as a reference for design features.
    - MQTT: Read MQTT documentation and refer to Dr. Roshan for better understanding and implementation.
-
-
-## Key Changes
-This feature introduces the following changes:
-
-   - A user location observer that obtains GPS location information (latitude and longitude).
-   - GPS data alongside a timestamp (Year-Month-Day, Hour-Minute-Second.Millisecond --> i.e. 2024-10-6 18:58:31.297) is sent to the WILOC MQTT server.
-   - IMU (accelerometer and gyroscope) data alongside a timestamp (Year-Month-Day, Hour-Minute-Second.Millisecond --> i.e. 2024-10-6 18:58:31.297) is sent to the WILOC MQTT server.
-   - The device MAC address is sent to the WILOC MQTT server (Helps differentiate different devices during data collection).
 
 
 ## Tools
