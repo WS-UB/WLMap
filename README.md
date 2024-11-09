@@ -1,8 +1,15 @@
-# WLMap
+# WLMap Feature Branch: user-click-ability
 
 ## Description
 
-This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
+This branch implements further navigation controls for user interaction in the WLMap application. The goal of this feature is to allow the user to travel to anywhere in Davis Hall, including the inside of classrooms. This feature also adds the ability to view the latitude and longitude coordinates of a point that a user selected, which will provide more information and navigational functionality for the user.
+
+## Key Changes
+This feature introduces the following changes:
+
+   - Users can click anywhere in Davis Hall and be prompted to "Get Directions" to that location.
+   - Users can be shown directions to the point they wish to navigate to in Davis Hall, being able to lead them through doorways, etc.
+   - Users are shown the latitude and longitude coordinates of the point they selected.
 
 ## Problem Definition
 
@@ -68,6 +75,15 @@ Kotlin and Android Studio are used to create the application on the Android plat
    - Select the "Phone" category and select the Pixel 7a (API 35).
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
+
+5. In your terminal, cd into the directory of your WLMap repository and type the following command.
+
+```
+   git checkout feature/user-click-ability
+```
+
+6. Open and run the WLMap application in Android Studio, selecting the "Navigation" option on the home screen of WLMap.
+
 
 ## Project Roadmap
 
