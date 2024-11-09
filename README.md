@@ -1,8 +1,8 @@
-# WLMap
+# WLMap Feature Branch: send-IMU-GPS-Data
 
 ## Description
 
-This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
+This branch implements the sending of IMU (gyroscope and accelerometer) and GPS data to the WILOC MQTT server for the WLMap application. The goal of this feature is to send IMU and GPS data along with a timestamp (Year-Month-Day, Hour-Minute-Second.Millisecond --> i.e. 2024-10-6 18:58:31.297) and device MAC address, which the data will be sent to the WILOC MQTT server. In the backend, the IMU and GPS data that was sent will be paired and synchronized with incoming WiFi data within 100ms of each other, which will be used for data collection.
 
 ## Problem Definition
 
@@ -31,16 +31,13 @@ Our current technology and development plans include:
    - MQTT: Read MQTT documentation and refer to Dr. Roshan for better understanding and implementation.
 
 
+## Key Changes
+This feature introduces the following changes:
 
-## Features
-This app can provide the following:
-   - Accurate mapping of Davis Hall.
-   - Navigational directions to any point within Davis Hall.
-   - Record gyroscopic and accelerometer information.
-   - An interactable UI.
-   - Navigational map option.
-   - Data collection map option.
-   - IMU and GPS user data is collected and streamed server-side.
+   - A user location observer that obtains GPS location information (latitude and longitude).
+   - GPS data alongside a timestamp (Year-Month-Day, Hour-Minute-Second.Millisecond --> i.e. 2024-10-6 18:58:31.297) is sent to the WILOC MQTT server.
+   - IMU (accelerometer and gyroscope) data alongside a timestamp (Year-Month-Day, Hour-Minute-Second.Millisecond --> i.e. 2024-10-6 18:58:31.297) is sent to the WILOC MQTT server.
+   - The device MAC address is sent to the WILOC MQTT server (Helps differentiate different devices during data collection).
 
 
 ## Tools
@@ -69,6 +66,19 @@ Kotlin and Android Studio are used to create the application on the Android plat
    - Select the "Phone" category and select the Pixel 7a (API 35).
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
+
+5. In your terminal, cd into the directory of your WLMap repository and type the following command.
+
+```
+   git checkout feature/send-IMU-GPS-data
+```
+
+6. To begin collecting GPS and IMU data, open and run the WLMap application in Android Studio, selecting the "Data Collection" option on the home screen of WLMap.
+
+7. To confirm that data is being streamed to the WILOC MQTT server, open LogCat in Android Studio and observe if GPS, accelerometer, and gyroscope data is being sent.
+
+8. If the MQTT server is not creating a connection, restart the WLMap application on Android Studio.
+
 
 ## Project Roadmap
 
