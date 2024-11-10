@@ -242,7 +242,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
         val locationObserver = object: LocationObserver {
             override fun onLocationUpdateReceived(locations: MutableList<Location>) {
-                if (previousTimestamp > 0){
                     val currentTimeMillis = System.currentTimeMillis()
                     val dt = currentTimeMillis.toDouble() - previousTimestamp.toDouble()
                     previousTimestamp = currentTimeMillis
@@ -253,30 +252,13 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                     val gps_y = userPixelLocation.y
                     val accel_data_x: Double = accreadings.split(",")[1].toDouble()
                     val accel_data_y: Double = accreadings.split(",")[2].toDouble()
-                    val gyro_data_x: Double = gyroreadings.split(",")[1].toDouble()
-                    val gyro_data_y: Double = gyroreadings.split(",")[2].toDouble()
+                    val gyro_data_z: Double = gyroreadings.split(",")[3].toDouble()
 
-
-                    // Get the current state (position, velocity, angle, angular velocity)
-
-                }
-//                val kalman = KalmanFilter(0.1)
-//
-//                // Simulated sensor inputs
-//                val gpsX = 100.0  // GPS X position
-//                val gpsY = 150.0  // GPS Y position
-//                val accelX = 0.1  // Accelerometer X acceleration
-//                val accelY = 0.2  // Accelerometer Y acceleration
-//                val gyroX = 0.05 // Gyroscope X angular velocity
-//                val gyroY = 0.1  // Gyroscope Y angular velocity
-//
-//                // Kalman filter prediction and update loop
-//                kalman.predict(accelX, accelY, gyroX)
-//                kalman.update(gpsX, gpsY)
-//
-//                // Get the current state (position, velocity, angle, angular velocity)
-//                val state = kalman.getState()
-//                Log.e("SERVER", "Position: (${state[0]}, ${state[1]}), Velocity: (${state[2]}, ${state[3]}), Angle: ${state[4]}, Angular Velocity: ${state[5]}")
+                    val kalman = KalmanFilter()
+                    kalman.predict(accel_data_x, accel_data_y, gyro_data_z)
+                    kalman.update(gps_x, gps_y)
+                    val filteredPosition = kalman.getPosition()
+                    Log.e("SERVER", "Filtered Position: x = ${filteredPosition[0]}, y = ${filteredPosition[1]}")
             }
         }
 

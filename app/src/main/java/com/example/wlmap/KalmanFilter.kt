@@ -197,12 +197,12 @@ fun main() {
     // Simulate GPS position and accelerometer data (with some noise)
     val truePosition = doubleArrayOf(1.0, 1.0)
     val accelX = 0.0
-    val accelY = 0.0
+    val accelY = 9.77
     val gyroZ = 0.05  // Sample angular velocity in radians per second
 
     // Simulate GPS data (noisy measurement)
-    val gpsX = truePosition[0] + (Math.random() * 2 - 1) // Adding some noise
-    val gpsY = truePosition[1] + (Math.random() * 2 - 1)
+    val gpsX = truePosition[0]
+    val gpsY = truePosition[1]
 
     // Perform prediction and update
     kalman.predict(accelX, accelY, gyroZ)
