@@ -1,8 +1,13 @@
-# WLMap
+# WLMap Feature Branch: Harry-Kalman-Filtering
 
 ## Description
 
-This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
+This branch implements the use of Kalman Filtering in WLMap. The goal of this feature is to reduce the noise of GPS, Accelerometer, and Gyroscope data that is being recorded by the application, which will provide an accurate depiction of a user's location when using WLMap.
+
+## Key Changes
+This feature introduces the following changes:
+
+   - Implemented the class "KalmanFilter" which can be passed an estimated noise matrix, GPS, Accelerometer, and Gyroscope data, returning a matrix that contains the cleaned Accelerometer and Gyroscope data, as well as the user's new GPS location.
 
 ## Problem Definition
 
@@ -68,6 +73,14 @@ Kotlin and Android Studio are used to create the application on the Android plat
    - Select the "Phone" category and select the Pixel 7a (API 35).
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
+  
+5. In your terminal, cd into the directory of your WLMap repository and type the following command.
+
+```
+   git checkout feature/Harry-Kalman-Filtering
+```
+
+6. Open and run the WLMap application in Android Studio, selecting the "Navigation" option on the home screen of WLMap.
 
 ## Project Roadmap
 
