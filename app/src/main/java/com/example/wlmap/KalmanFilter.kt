@@ -46,19 +46,33 @@ class KalmanFilter(
         measurementNoiseCovariance[1][1] = 1.0 // y measurement noise
     }
 
-    // Prediction step
-    fun predict(accelX: Double, accelY: Double) {
-        // Predict position based on previous state (constant velocity model)
+    // Prediction step (using accelerometer and gyroscope)
+    fun predict(accelX: Double, accelY: Double, gyroZ: Double) {
+        // Predict the velocity using accelerometer and gyroscope
+        // Accelerometer updates linear velocity
         val velocityX = state.velocity[0] + accelX
         val velocityY = state.velocity[1] + accelY
-        state.position[0] += velocityX
-        state.position[1] += velocityY
 
-        // Update the velocity
-        state.velocity[0] = velocityX
-        state.velocity[1] = velocityY
+        // Gyroscope updates the direction of the velocity vector
+        val deltaAngle = gyroZ // Gyro angular velocity (radians per second)
+        val rotationMatrix = arrayOf(
+            doubleArrayOf(Math.cos(deltaAngle), -Math.sin(deltaAngle)),
+            doubleArrayOf(Math.sin(deltaAngle), Math.cos(deltaAngle))
+        )
 
-        // Update the covariance
+        // Rotate the velocity vector using the gyroscope information
+        val rotatedVelocityX = rotationMatrix[0][0] * velocityX + rotationMatrix[0][1] * velocityY
+        val rotatedVelocityY = rotationMatrix[1][0] * velocityX + rotationMatrix[1][1] * velocityY
+
+        // Update the velocity with the rotated values
+        state.velocity[0] = rotatedVelocityX
+        state.velocity[1] = rotatedVelocityY
+
+        // Update the position based on the velocity
+        state.position[0] += rotatedVelocityX
+        state.position[1] += rotatedVelocityY
+
+        // Update the covariance (add process noise)
         for (i in 0..3) {
             for (j in 0..3) {
                 state.covariance[i][j] += processNoiseCovariance[i][j]
@@ -138,6 +152,7 @@ class KalmanFilter(
         }
     }
 
+    // Inverse function for a 2x2 matrix
     fun inverse(matrix: Array<DoubleArray>): Array<DoubleArray> {
         // Check if the matrix is 2x2
         if (matrix.size != 2 || matrix[0].size != 2) {
@@ -168,40 +183,36 @@ class KalmanFilter(
         return invMatrix
     }
 
-
-
     // Get current position estimate
     fun getPosition(): DoubleArray {
         return state.position
     }
 }
 
+
+
 fun main() {
-    // Initialize the Kalman Filter
-    val kalmanFilter = KalmanFilter()
+    val kalman = KalmanFilter()
 
-    // Simulated sensor data
-    var accelerometerData = doubleArrayOf(0.2, 0.2) // accelX, accelY
-    var gpsData = doubleArrayOf(5.0, 5.0) // gpsX, gpsY
+    // Simulate GPS position and accelerometer data (with some noise)
+    val truePosition = doubleArrayOf(1.0, 1.0)
+    val accelX = 0.0
+    val accelY = 0.0
+    val gyroZ = 0.05  // Sample angular velocity in radians per second
 
-    // Loop to simulate filtering over time
-    for (i in 1..100) {
-        // Predict based on accelerometer data (for motion estimation)
-        kalmanFilter.predict(accelerometerData[0], accelerometerData[1])
+    // Simulate GPS data (noisy measurement)
+    val gpsX = truePosition[0] + (Math.random() * 2 - 1) // Adding some noise
+    val gpsY = truePosition[1] + (Math.random() * 2 - 1)
 
-        // Update based on GPS measurement
-        kalmanFilter.update(gpsData[0], gpsData[1])
+    // Perform prediction and update
+    kalman.predict(accelX, accelY, gyroZ)
+    kalman.update(gpsX, gpsY)
 
-        // Get filtered position
-        val filteredPosition = kalmanFilter.getPosition()
-        println("Filtered Position: x = ${filteredPosition[0]}, y = ${filteredPosition[1]}")
-        println()
-
-        accelerometerData[0] = accelerometerData[0] + 0.1
-        accelerometerData[1] = accelerometerData[1] + 0.1
-
-    }
+    // Get and print the filtered position
+    val filteredPosition = kalman.getPosition()
+    println("Filtered Position: x = ${filteredPosition[0]}, y = ${filteredPosition[1]}")
 }
+
 
 
 
