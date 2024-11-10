@@ -127,6 +127,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private lateinit var list_of_Locations: MutableList<Location>
     private var accreadings="0, 0, 0, 0"
     private var gyroreadings="0, 0, 0, 0"
+    private var previousTimestamp: Long = 0
     var deviceID = View.generateViewId()
 
     //private var curRoute: List<Point> = null
@@ -241,17 +242,46 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
         val locationObserver = object: LocationObserver {
             override fun onLocationUpdateReceived(locations: MutableList<Location>) {
-                val currentTimeMillis = System.currentTimeMillis()
-                val timeStamp = Timestamp(currentTimeMillis).toString()
-                val userLocation = Point.fromLngLat(locations[0].longitude, locations[0].latitude)
-                val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
-                val accel_data: List<Double> = listOf(accreadings.split(",")[1].toDouble(), accreadings.split(",")[2].toDouble(), accreadings.split(",")[3].toDouble())
-                val gyro_data: List<Double> = listOf(gyroreadings.split(",")[1].toDouble(), gyroreadings.split(",")[2].toDouble(), gyroreadings.split(",")[3].toDouble())
+                if (previousTimestamp > 0){
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val dt = currentTimeMillis.toDouble() - previousTimestamp.toDouble()
+                    previousTimestamp = currentTimeMillis
+
+                    val userLocation = Point.fromLngLat(locations[0].longitude, locations[0].latitude)
+                    val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
+                    val gps_x = userPixelLocation.x
+                    val gps_y = userPixelLocation.y
+                    val accel_data_x: Double = accreadings.split(",")[1].toDouble()
+                    val accel_data_y: Double = accreadings.split(",")[2].toDouble()
+                    val gyro_data_x: Double = gyroreadings.split(",")[1].toDouble()
+                    val gyro_data_y: Double = gyroreadings.split(",")[2].toDouble()
+
+
+                    // Get the current state (position, velocity, angle, angular velocity)
+
+                }
+//                val kalman = KalmanFilter(0.1)
+//
+//                // Simulated sensor inputs
+//                val gpsX = 100.0  // GPS X position
+//                val gpsY = 150.0  // GPS Y position
+//                val accelX = 0.1  // Accelerometer X acceleration
+//                val accelY = 0.2  // Accelerometer Y acceleration
+//                val gyroX = 0.05 // Gyroscope X angular velocity
+//                val gyroY = 0.1  // Gyroscope Y angular velocity
+//
+//                // Kalman filter prediction and update loop
+//                kalman.predict(accelX, accelY, gyroX)
+//                kalman.update(gpsX, gpsY)
+//
+//                // Get the current state (position, velocity, angle, angular velocity)
+//                val state = kalman.getState()
+//                Log.e("SERVER", "Position: (${state[0]}, ${state[1]}), Velocity: (${state[2]}, ${state[3]}), Angle: ${state[4]}, Angular Velocity: ${state[5]}")
             }
         }
 
 
-//        locationProvider?.addLocationObserver(locationObserver)
+        locationProvider?.addLocationObserver(locationObserver)
 
         initManagers()
 
