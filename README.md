@@ -83,6 +83,11 @@ Kotlin and Android Studio are used to create the application on the Android plat
 
 6. Open and run the WLMap application in Android Studio, selecting the "Navigation" option on the home screen of WLMap.
 
+7. Once running the application, open LogCat and observe the following:
+   - User GPS location being printed to the server log.
+   - Filtered/cleaned user GPS location bring printed to the server log.
+
+
 ## Project Roadmap
 
 ### User UI-UX
