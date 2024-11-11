@@ -254,11 +254,13 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                     val accel_data_y: Double = accreadings.split(",")[2].toDouble()
                     val gyro_data_z: Double = gyroreadings.split(",")[3].toDouble()
 
-                    val kalman = KalmanFilter()
-                    kalman.predict(accel_data_x, accel_data_y, gyro_data_z)
-                    kalman.update(gps_x, gps_y)
-                    val filteredPosition = kalman.getPosition()
-                    Log.e("SERVER", "Filtered Position: x = ${filteredPosition[0]}, y = ${filteredPosition[1]}")
+                    val kalmanFilter = KalmanFilter(processNoiseCovariance = 10.0, measurementNoiseCovariance = 1.0)
+                    kalmanFilter.predict()
+
+                // Update the filter with the new GPS measurement
+                    kalmanFilter.update(gps_x, gps_y)
+                    val (estimatedX, estimatedY) = kalmanFilter.getState()
+                    Log.e("SERVER", "Estimated Position: (x: $estimatedX, y: $estimatedY)")
             }
         }
 
