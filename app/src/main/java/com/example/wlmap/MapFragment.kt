@@ -246,6 +246,10 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                     val dt = currentTimeMillis.toDouble() - previousTimestamp.toDouble()
                     previousTimestamp = currentTimeMillis
 
+                    val raw_location_long = locations[0].longitude
+                    val raw_location_lat = locations[0].latitude
+                    Log.e("SERVER", "$raw_location_long, $raw_location_lat")
+
                     val userLocation = Point.fromLngLat(locations[0].longitude, locations[0].latitude)
                     val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
                     val gps_x = userPixelLocation.x
