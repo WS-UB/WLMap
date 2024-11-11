@@ -7,7 +7,8 @@ This branch implements the use of Kalman Filtering in WLMap. The goal of this fe
 ## Key Changes
 This feature introduces the following changes:
 
-   - Implemented the class "KalmanFilter" which can be passed an estimated noise matrix, GPS, Accelerometer, and Gyroscope data, returning a matrix that contains the cleaned Accelerometer and Gyroscope data, as well as the user's new GPS location.
+   - Implemented the class "KalmanFilter" which can be passed an estimated noise matrix, GPS, Accelerometer, and Gyroscope data, returning the user's filtered/cleaned GPS location.
+   - Implemented a Location Observer, which provides the current location of the user for Kalman Filtering.
 
 ## Problem Definition
 
@@ -82,6 +83,11 @@ Kotlin and Android Studio are used to create the application on the Android plat
 
 6. Open and run the WLMap application in Android Studio, selecting the "Navigation" option on the home screen of WLMap.
 
+7. Once running the application, open LogCat and observe the following:
+   - User GPS location being printed to the server log.
+   - Filtered/cleaned user GPS location bring printed to the server log.
+
+
 ## Project Roadmap
 
 ### User UI-UX
@@ -97,6 +103,7 @@ Kotlin and Android Studio are used to create the application on the Android plat
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [x] User can travel to any point within a room in Davis Hall.
+- [ ] User's GPS data is cleaned/filtered using Kalman Filtering
 
 ### Data Readings sent to MQTT client
 - [x] GPS data is sent to MQTT server.
