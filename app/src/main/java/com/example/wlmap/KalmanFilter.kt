@@ -77,7 +77,7 @@ class KalmanFilter(private val processNoiseCovariance: Double, private val measu
 
 fun main() {
     // Create a Kalman filter with arbitrary process noise and measurement noise values
-    val kalmanFilter = KalmanFilter(processNoiseCovariance = 10.0, measurementNoiseCovariance = 1.0)
+    val kalmanFilter = KalmanFilter(processNoiseCovariance = 10000.0, measurementNoiseCovariance = 1.0)
 
     // Simulated GPS measurements (noisy)
     val gpsMeasurements = listOf(
