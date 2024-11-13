@@ -1,106 +1,53 @@
 package com.example.wlmap
 
-class KalmanFilter(private val processNoiseCovariance: Double, private val measurementNoiseCovariance: Double) {
-    // State estimate (x, y position)
-    private var x: Double = 0.0
-    private var y: Double = 0.0
+import android.location.Location
 
-    // Error covariance matrix
-    private var P: Array<Array<Double>> = arrayOf(
-        arrayOf(1.0, 0.0),
-        arrayOf(0.0, 1.0)
-    )
+class KalmanFilter(initialLat: Double, initialLon: Double) {
 
-    // State transition matrix (Assumes constant velocity model)
-    private val F: Array<Array<Double>> = arrayOf(
-        arrayOf(1.0, 0.0),
-        arrayOf(0.0, 1.0)
-    )
+    private var latitude = initialLat
+    private var longitude = initialLon
+    private var latitudeError = 100.0 // Initial error estimate for latitude
+    private var longitudeError = 100.0 // Initial error estimate for longitude
+    private val processNoise = 1e-5 // Process noise (how much you trust the model)
+    private val measurementNoise = 1e-3 // Measurement noise (how much you trust the GPS readings)
 
-    // Measurement matrix (Assumes direct measurement of x and y)
-    private val H: Array<Array<Double>> = arrayOf(
-        arrayOf(1.0, 0.0),
-        arrayOf(0.0, 1.0)
-    )
+    // Update the Kalman Filter with a new measurement (latitude and longitude)
+    fun update(lat: Double, lon: Double) {
+        // Update for latitude
+        val kalmanGainLat = latitudeError / (latitudeError + measurementNoise)
+        latitude += kalmanGainLat * (lat - latitude) // Correct the estimate
+        latitudeError = (1 - kalmanGainLat) * latitudeError + Math.abs(latitude - lat) * processNoise
 
-    // Measurement noise covariance
-    private val R: Array<Array<Double>> = arrayOf(
-        arrayOf(measurementNoiseCovariance, 0.0),
-        arrayOf(0.0, measurementNoiseCovariance)
-    )
-
-    // Process noise covariance
-    private val Q: Array<Array<Double>> = arrayOf(
-        arrayOf(processNoiseCovariance, 0.0),
-        arrayOf(0.0, processNoiseCovariance)
-    )
-
-    // Prediction step
-    fun predict() {
-        // Predicted state (no motion model, just a prediction of the current state)
-        val predictedX = x
-        val predictedY = y
-
-        // Predicted error covariance (no motion model, but this could be adjusted based on velocity)
-        P[0][0] += Q[0][0]
-        P[1][1] += Q[1][1]
-
-        x = predictedX
-        y = predictedY
+        // Update for longitude
+        val kalmanGainLon = longitudeError / (longitudeError + measurementNoise)
+        longitude += kalmanGainLon * (lon - longitude) // Correct the estimate
+        longitudeError = (1 - kalmanGainLon) * longitudeError + Math.abs(longitude - lon) * processNoise
     }
 
-    // Update step with new measurement (GPS x, y)
-    fun update(measuredX: Double, measuredY: Double) {
-        // Innovation or residual
-        val innovationX = measuredX - x
-        val innovationY = measuredY - y
-
-        // Calculate the Kalman gain (K)
-        val S = P[0][0] + R[0][0] // Simplified as measurement noise is scalar for each dimension
-        val Kx = P[0][0] / S
-        val Ky = P[1][1] / S
-
-        // Update estimate with new measurement
-        x += Kx * innovationX
-        y += Ky * innovationY
-
-        // Update error covariance
-        P[0][0] -= Kx * P[0][0]
-        P[1][1] -= Ky * P[1][1]
-    }
-
-    // Return the current state estimate (x, y)
-    fun getState(): Pair<Double, Double> {
-        return Pair(x, y)
+    // Get the filtered latitude and longitude
+    fun getFilteredLocation(): Location {
+        val location = Location("Kalman")
+        location.latitude = latitude
+        location.longitude = longitude
+        return location
     }
 }
 
-fun main() {
-    // Create a Kalman filter with arbitrary process noise and measurement noise values
-    val kalmanFilter = KalmanFilter(processNoiseCovariance = 10000.0, measurementNoiseCovariance = 1.0)
 
-    // Simulated GPS measurements (noisy)
-    val gpsMeasurements = listOf(
-        Pair(0.0, 0.0),
-        Pair(1.0, 1.0),
-        Pair(2.0, 2.1),
-        Pair(3.0, 3.2),
-        Pair(4.0, 3.9),
-        Pair(5.0, 5.0)
-    )
-
-    for (measurement in gpsMeasurements) {
-        // Predict the next state
-        kalmanFilter.predict()
-
-        // Update the filter with the new GPS measurement
-        kalmanFilter.update(measurement.first, measurement.second)
-
-        // Get the current estimate (smoothed position)
-        val (estimatedX, estimatedY) = kalmanFilter.getState()
-        println("Estimated Position: (x: $estimatedX, y: $estimatedY)")
-    }
-}
+//fun main() {
+//    // Create a Kalman filter with arbitrary process noise and measurement noise values
+//    val kalmanFilter = KalmanFilter(42.998715,-78.795676)
+//
+//    // Simulated GPS measurements (noisy)
+//
+//
+//    kalmanFilter.update(measurement.first, measurement.second)
+//
+//        // Get the current estimate (smoothed position)
+//        val (estimatedX, estimatedY) = kalmanFilter.getState()
+//        println("Estimated Position: (x: $estimatedX, y: $estimatedY)")
+//    }
+//}
 
 
 

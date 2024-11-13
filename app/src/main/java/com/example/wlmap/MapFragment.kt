@@ -44,6 +44,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.material.navigation.NavigationView
 import com.mapbox.common.location.AccuracyLevel
 import com.mapbox.common.location.DeviceLocationProvider
@@ -148,7 +149,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
     private val locationService : LocationService = LocationServiceFactory.getOrCreate()
     private var locationProvider: DeviceLocationProvider? = null
-    private val kalmanFilter = KalmanFilter(processNoiseCovariance = 10000.0, measurementNoiseCovariance = 1.0)
+    private lateinit var kalmanFilter: KalmanFilter
     private lateinit var wifiManager: WifiManager
 
     private lateinit var drawerLayout: DrawerLayout
@@ -263,8 +264,18 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             // for ActivityCompat#requestPermissions for more details.
             requestLocationPermission()
         }
-        val locationRequest = LocationRequest.Builder(100)
-            .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { location : android.location.Location? ->
+                if (location != null){
+                    kalmanFilter = KalmanFilter(location.latitude, location.longitude)
+                }
+
+            }
+
+
+        val locationRequest = LocationRequest.Builder(50)
+            .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
             .build()
 
         val locationCallback: LocationCallback = object : LocationCallback() {
@@ -272,52 +283,51 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 super.onLocationResult(locationResult)
                 if (locationResult != null) {
                     val location: android.location.Location? = locationResult.lastLocation
-                    Log.e("SERVER", "$location")
+                    val thing = location!!.speedAccuracyMetersPerSecond
+                    if ((location!!.accuracy < 20) && (location!!.speedAccuracyMetersPerSecond < 20) && (location!!.bearingAccuracyDegrees < 45)){
+                        Log.e("SERVER", "$location")
 
-                    location!!.accuracy
+                        val userLocation = Point.fromLngLat(location!!.longitude, location.latitude)
+                        val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
+                        val gps_x = userPixelLocation.x
+                        val gps_y = userPixelLocation.y
 
-
-                    val userLocation = Point.fromLngLat(location!!.longitude, location.latitude)
-                    val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
-                    val gps_x = userPixelLocation.x
-                    val gps_y = userPixelLocation.y
-                    kalmanFilter.predict()
-
-                    kalmanFilter.update(gps_x, gps_y)
-                    val (estimatedX, estimatedY) = kalmanFilter.getState()
+                        kalmanFilter.update(location.latitude, location.longitude)
+                        val smoothedLocation = kalmanFilter.getFilteredLocation()
 
 
 
-                    val screenCoordinate = ScreenCoordinate(estimatedX, estimatedY)
-                    val point = mapView.mapboxMap.coordinateForPixel(screenCoordinate)
-                    Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
-                    //Log.e(ContentValues.TAG, "Location update received: $location")
+                        val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
+                        val point = Point.fromLngLat(smoothedLocation.longitude, smoothedLocation.latitude)
+                        Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
+                        //Log.e(ContentValues.TAG, "Location update received: $location")
 
-                    // Set options for the resulting circle layer.
-                    val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+                        // Set options for the resulting circle layer.
+                        val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
 
-                        // Define a geographic coordinate.
-                        .withPoint(point)
+                            // Define a geographic coordinate.
+                            .withPoint(point)
 
-                        // Style the circle that will be added to the map.
-                        .withCircleRadius(8.0)
-                        .withCircleColor("#4a90e2")
-                        .withCircleStrokeWidth(3.5)
-                        .withCircleStrokeColor("#FAF9F6")
-                        .withCircleSortKey(1.0)
+                            // Style the circle that will be added to the map.
+                            .withCircleRadius(8.0)
+                            .withCircleColor("#4a90e2")
+                            .withCircleStrokeWidth(3.5)
+                            .withCircleStrokeColor("#FAF9F6")
+                            .withCircleSortKey(1.0)
 
-                    if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
-                        // Delete the previous LocationPuck annotation
-                        userAnnotationManager.delete(circleAnnotationId!!)
+                        if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
+                            // Delete the previous LocationPuck annotation
+                            userAnnotationManager.delete(circleAnnotationId!!)
+                        }
+
+                        // Store last location for nav routing algorithm
+                        userLastLocation = point
+
+                        // Create and add the new circle annotation to the map
+                        circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
+
+                        // Use this location and update your UI
                     }
-
-                    // Store last location for nav routing algorithm
-                    userLastLocation = point
-
-                    // Create and add the new circle annotation to the map
-                    circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
-
-                    // Use this location and update your UI
                 }
             }
         }
@@ -326,39 +336,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             locationCallback,
             Looper.getMainLooper())
 
-//        fusedLocationClient.getCurrentLocation(LocationRequest.PRIORITY_HIGH_ACCURACY, null)
-//            .addOnSuccessListener { location : android.location.Location? ->
-//                if (location != null){
-//                    Log.e("SERVER", "$location")
-//                    val point = Point.fromLngLat(location.longitude,location.latitude)
-//                    //Log.e(ContentValues.TAG, "Location update received: $location")
-//
-//                    // Set options for the resulting circle layer.
-//                    val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
-//
-//                        // Define a geographic coordinate.
-//                        .withPoint(point)
-//
-//                        // Style the circle that will be added to the map.
-//                        .withCircleRadius(8.0)
-//                        .withCircleColor("#4a90e2")
-//                        .withCircleStrokeWidth(3.5)
-//                        .withCircleStrokeColor("#FAF9F6")
-//                        .withCircleSortKey(1.0)
-//
-//                    if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
-//                        // Delete the previous LocationPuck annotation
-//                        userAnnotationManager.delete(circleAnnotationId!!)
-//                    }
-//
-//                    // Store last location for nav routing algorithm
-//                    userLastLocation = point
-//
-//                    // Create and add the new circle annotation to the map
-//                    circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
-//                }
-//
-//            }
+
 
 
 
