@@ -7,8 +7,10 @@ This branch implements the use of Kalman Filtering in WLMap. The goal of this fe
 ## Key Changes
 This feature introduces the following changes:
 
-   - Implemented the class "KalmanFilter" which can be passed an estimated noise matrix, GPS, Accelerometer, and Gyroscope data, returning the user's filtered/cleaned GPS location.
+   - Implemented the class "KalmanFilter" which can be passed a GPS location, returning the user's filtered/cleaned GPS location.
    - Implemented a Location Observer, which provides the current location of the user for Kalman Filtering.
+   - Checks were implemented to remove low-accuracy data from the locations that are provided by the Location Observer.
+   - The navigation line follows the user as the location changes.
 
 ## Problem Definition
 
