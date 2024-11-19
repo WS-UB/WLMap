@@ -217,7 +217,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         g.id = View.generateViewId()
         //g.text="gyroscope"
         setUpSensor()
-        setUpLocationHandler()
+//        setUpLocationHandler()
 
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
@@ -240,13 +240,13 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 //        checkPermissionsAndRequest()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
-//        with(mapView) {
-//            location.locationPuck = createDefault2DPuck(withBearing = true)
-//            location.enabled = true
-//            location.showAccuracyRing = true
-//            location.puckBearing = PuckBearing.HEADING
-//            location.puckBearingEnabled = true
-//        }
+        with(mapView) {
+            location.locationPuck = createDefault2DPuck(withBearing = true)
+            location.enabled = true
+            location.showAccuracyRing = true
+            location.puckBearing = PuckBearing.HEADING
+            location.puckBearingEnabled = true
+        }
 
         val request = LocationProviderRequest.Builder()
             .interval(IntervalSettings.Builder().interval(0L).minimumInterval(0L).maximumInterval(0L).build())
@@ -282,110 +282,114 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
 
 
-//        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-//            .addOnSuccessListener { location : android.location.Location? ->
-//                if (location != null){
-//
-//                }
-//
-//            }
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { location : android.location.Location? ->
+                if (location != null){
+
+                }
+
+            }
 
 
-        val locationRequest = LocationRequest.Builder(1000)
-            .setIntervalMillis(1000)
-            .setWaitForAccurateLocation(true)
+        val locationRequest = LocationRequest.Builder(500)
+            .setMinUpdateDistanceMeters(0f)
+            .setMinUpdateIntervalMillis(500)
+            .setIntervalMillis(500)
             .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
             .build()
+
 
         val locationCallback: LocationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
                 if (locationResult != null) {
-                    val location: android.location.Location? = locationResult.lastLocation
-                    val thing = location!!.speedAccuracyMetersPerSecond
-                    if ((location!!.accuracy < 20) && (location!!.speedAccuracyMetersPerSecond < 20)){
-                        Log.e("SERVER", "$location")
+                    if (::kalmanFilter.isInitialized){
+                        val location: android.location.Location? = locationResult.lastLocation
+                        if ((location!!.accuracy < 150) && (location!!.speedAccuracyMetersPerSecond < 150)){
+                            val thing = location!!.speedAccuracyMetersPerSecond
+                            Log.e("SERVER", "$location")
 
-                        val userLocation = Point.fromLngLat(location!!.longitude, location.latitude)
-                        val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
-                        val gps_x = userPixelLocation.x
-                        val gps_y = userPixelLocation.y
+                            val userLocation = Point.fromLngLat(location!!.longitude, location.latitude)
+                            val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
+                            val gps_x = userPixelLocation.x
+                            val gps_y = userPixelLocation.y
+                            val offsetLongitude = 0.00012f
+                            val offsetLatitude = 0.000027f
 
-                        kalmanFilter.update(floatArrayOf(location.latitude.toFloat(), location.longitude.toFloat()))
-                        val filteredState = kalmanFilter.getState()
+//                            kalmanFilter.update(floatArrayOf(location.latitude.toFloat() + offsetLatitude, location.longitude.toFloat() + offsetLongitude))
+//                            val filteredState = kalmanFilter.getState()
 
 
 
-                        val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
-                        val point = Point.fromLngLat(location.longitude, location.latitude)
-                        Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
-                        //Log.e(ContentValues.TAG, "Location update received: $location")
+                            val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
+                            val point = Point.fromLngLat(location.longitude + offsetLongitude, location.latitude + offsetLatitude)
+                            Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
+                            //Log.e(ContentValues.TAG, "Location update received: $location")
 
-                        // Set options for the resulting circle layer.
-                        val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+                            // Set options for the resulting circle layer.
+                            val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
 
-                            // Define a geographic coordinate.
-                            .withPoint(point)
+                                // Define a geographic coordinate.
+                                .withPoint(point)
 
-                            // Style the circle that will be added to the map.
-                            .withCircleRadius(6.0)
-                            .withCircleColor("#4a90e2")
-                            .withCircleStrokeWidth(2.5)
-                            .withCircleStrokeColor("#FAF9F6")
-                            .withCircleSortKey(1.0)
+                                // Style the circle that will be added to the map.
+                                .withCircleRadius(6.0)
+                                .withCircleColor("#4a90e2")
+                                .withCircleStrokeWidth(2.5)
+                                .withCircleStrokeColor("#FAF9F6")
+                                .withCircleSortKey(1.0)
 
-                        if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
-                            // Delete the previous LocationPuck annotation
-                            userAnnotationManager.delete(circleAnnotationId!!)
+                            if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
+                                // Delete the previous LocationPuck annotation
+                                userAnnotationManager.delete(circleAnnotationId!!)
+                            }
+
+                            // Store last location for nav routing algorithm
+                            userLastLocation = point
+
+                            // Create and add the new circle annotation to the map
+                            circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
+
+                            if (routeDisplayed) {
+                                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+                                polylineAnnotationManager.deleteAll()
+                                routeDisplayed = false
+
+                                val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
+                                navGraph.addEdge(nearestUserPoint,userLastLocation)
+
+                                //Obtain the nearest point to the user-selected point and add the edge to navGraph
+                                val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,navigationPoint)
+                                navGraph.addEdge(nearestPoint,navigationPoint)
+
+                                val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                                    .withPoints(navGraph.calcRoute(userLastLocation, navigationPoint))
+                                    // Style the line that will be added to the map.
+                                    .withLineColor("#0f53ff")
+                                    .withLineWidth(6.3)
+                                    .withLineJoin(LineJoin.ROUND)
+                                    .withLineSortKey(0.0)
+
+                                // Add the resulting line to the map.
+
+
+                                prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
+                                routeDisplayed = true
+                                pointSelected = null
+                            }
                         }
 
-                        // Store last location for nav routing algorithm
-                        userLastLocation = point
 
-                        // Create and add the new circle annotation to the map
-                        circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
-
-                        if (routeDisplayed) {
-                            Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
-                            polylineAnnotationManager.deleteAll()
-                            routeDisplayed = false
-
-                            val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
-                            navGraph.addEdge(nearestUserPoint,userLastLocation)
-
-                            //Obtain the nearest point to the user-selected point and add the edge to navGraph
-                            val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,navigationPoint)
-                            navGraph.addEdge(nearestPoint,navigationPoint)
-
-                            val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-                                .withPoints(navGraph.calcRoute(userLastLocation, navigationPoint))
-                                // Style the line that will be added to the map.
-                                .withLineColor("#0f53ff")
-                                .withLineWidth(6.3)
-                                .withLineJoin(LineJoin.ROUND)
-                                .withLineSortKey(0.0)
-
-                            // Add the resulting line to the map.
-
-
-                            prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
-                            routeDisplayed = true
-                            pointSelected = null
-                        }
-
-
-
-
+                    }
 
                         // Use this location and update your UI
-                    }
                 }
             }
         }
 
-//        fusedLocationClient.requestLocationUpdates(locationRequest,
-//            locationCallback,
-//            Looper.getMainLooper())
+        fusedLocationClient.requestLocationUpdates(locationRequest,
+            locationCallback,
+            Looper.getMainLooper())
 
         initManagers()
 
@@ -1866,77 +1870,80 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
     val locationListener = object : LocationListener {
         override fun onLocationChanged(location: android.location.Location) {
-            val thing = location!!.speedAccuracyMetersPerSecond
+            if (::kalmanFilter.isInitialized){
+                Log.e("SERVER", "$location")
 
-            Log.e("SERVER", "$location")
-
-            val userLocation = Point.fromLngLat(location!!.longitude, location.latitude)
-            val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
-            val gps_x = userPixelLocation.x
-            val gps_y = userPixelLocation.y
-
-
-//            kalmanFilter.update(floatArrayOf(location.latitude.toFloat(), location.longitude.toFloat()))
-            val filteredState = kalmanFilter.getState()
+                val userLocation = Point.fromLngLat(location!!.longitude, location.latitude)
+                val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
+                val gps_x = userPixelLocation.x
+                val gps_y = userPixelLocation.y
 
 
+                val offsetLongitude = 0.00012f
+                val offsetLatitude = 0.000025f
 
-            val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
-            val point = Point.fromLngLat(location.longitude, location.latitude)
-            Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
-            //Log.e(ContentValues.TAG, "Location update received: $location")
+                kalmanFilter.update(floatArrayOf(location.latitude.toFloat() + offsetLatitude, location.longitude.toFloat() + offsetLongitude))
+                val filteredState = kalmanFilter.getState()
 
-            // Set options for the resulting circle layer.
-            val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
 
-                // Define a geographic coordinate.
-                .withPoint(point)
+                val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
+                val point = Point.fromLngLat(filteredState[1].toDouble(), filteredState[0].toDouble())
+                Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
+                //Log.e(ContentValues.TAG, "Location update received: $location")
 
-                // Style the circle that will be added to the map.
-                .withCircleRadius(6.0)
-                .withCircleColor("#4a90e2")
-                .withCircleStrokeWidth(2.5)
-                .withCircleStrokeColor("#FAF9F6")
-                .withCircleSortKey(1.0)
+                // Set options for the resulting circle layer.
+                val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
 
-            if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
-                // Delete the previous LocationPuck annotation
-                userAnnotationManager.delete(circleAnnotationId!!)
+                    // Define a geographic coordinate.
+                    .withPoint(point)
+
+                    // Style the circle that will be added to the map.
+                    .withCircleRadius(6.0)
+                    .withCircleColor("#4a90e2")
+                    .withCircleStrokeWidth(2.5)
+                    .withCircleStrokeColor("#FAF9F6")
+                    .withCircleSortKey(1.0)
+
+                if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
+                    // Delete the previous LocationPuck annotation
+                    userAnnotationManager.delete(circleAnnotationId!!)
+                }
+
+                // Store last location for nav routing algorithm
+                userLastLocation = point
+
+                // Create and add the new circle annotation to the map
+                circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
+
+                if (routeDisplayed) {
+                    Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+                    polylineAnnotationManager.deleteAll()
+                    routeDisplayed = false
+
+                    val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
+                    navGraph.addEdge(nearestUserPoint,userLastLocation)
+
+                    //Obtain the nearest point to the user-selected point and add the edge to navGraph
+                    val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,navigationPoint)
+                    navGraph.addEdge(nearestPoint,navigationPoint)
+
+                    val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                        .withPoints(navGraph.calcRoute(userLastLocation, navigationPoint))
+                        // Style the line that will be added to the map.
+                        .withLineColor("#0f53ff")
+                        .withLineWidth(6.3)
+                        .withLineJoin(LineJoin.ROUND)
+                        .withLineSortKey(0.0)
+
+                    // Add the resulting line to the map.
+
+
+                    prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
+                    routeDisplayed = true
+                    pointSelected = null
+                }
             }
 
-            // Store last location for nav routing algorithm
-            userLastLocation = point
-
-            // Create and add the new circle annotation to the map
-            circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
-
-            if (routeDisplayed) {
-                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
-                polylineAnnotationManager.deleteAll()
-                routeDisplayed = false
-
-                val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
-                navGraph.addEdge(nearestUserPoint,userLastLocation)
-
-                //Obtain the nearest point to the user-selected point and add the edge to navGraph
-                val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,navigationPoint)
-                navGraph.addEdge(nearestPoint,navigationPoint)
-
-                val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
-                    .withPoints(navGraph.calcRoute(userLastLocation, navigationPoint))
-                    // Style the line that will be added to the map.
-                    .withLineColor("#0f53ff")
-                    .withLineWidth(6.3)
-                    .withLineJoin(LineJoin.ROUND)
-                    .withLineSortKey(0.0)
-
-                // Add the resulting line to the map.
-
-
-                prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
-                routeDisplayed = true
-                pointSelected = null
-            }
 
             // Use this location and update your UI
 
@@ -1969,7 +1976,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
         locationManager.requestLocationUpdates(
             LocationManager.NETWORK_PROVIDER,
-            0, // Minimum time interval between updates in milliseconds
+            1000, // Minimum time interval between updates in milliseconds
             0f, // Minimum distance between updates in meters
             locationListener
         )
