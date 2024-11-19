@@ -13,6 +13,8 @@ This feature introduces the following changes:
    - The navigation line follows the user as the location changes.
    - Implemented a getCurrentLocation observer for testing.
 
+[Link to worked/attempted solutions](https://docs.google.com/document/d/1AoPOC_SSGHcgHDT6rdT8-wDTFrpVAIkc0Pyi7ONLves/edit?usp=sharing)
+
 ## Problem Definition
 
 We aim to create a stable Android mobile application for indoor navigation and WiFi-based data collection. This semester, we will focus on resolving technical issues with the data collection app, enhancing the user interface, and integrating server-side data processing using AWS. Additionally, we will develop a functional navigational interface similar to Google Maps, enabling users to track their indoor location within large buildings like malls and airports. In the long term, we aspire to deploy a fully functional, scalable system that enables seamless indoor navigation by utilizing WiFi signals and real-time data collection. By leveraging machine learning models, we will enhance accuracy in indoor positioning, ensuring privacy and efficiency through the use of hashed user data. Our goal is to provide a robust and open-source platform that can be adapted for various large-scale indoor environments.
