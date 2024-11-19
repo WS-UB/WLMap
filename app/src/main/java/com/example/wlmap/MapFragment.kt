@@ -15,6 +15,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Criteria
+import android.location.LocationListener
+import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Looper
@@ -38,6 +40,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -129,6 +132,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private lateinit var latAndlongWindow: PopupWindow
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var navigationPoint: Point
+    private lateinit var locationManager: LocationManager
     private val navGraph = Graph()
 
     private lateinit var sensorManager: SensorManager
@@ -156,6 +160,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private val locationService : LocationService = LocationServiceFactory.getOrCreate()
     private var locationProvider: DeviceLocationProvider? = null
     private lateinit var kalmanFilter: KalmanFilter
+    private lateinit var locationUpdateRunnable: Runnable
     private lateinit var wifiManager: WifiManager
 
     private lateinit var drawerLayout: DrawerLayout
@@ -212,6 +217,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         g.id = View.generateViewId()
         //g.text="gyroscope"
         setUpSensor()
+        setUpLocationHandler()
 
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
@@ -234,13 +240,13 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 //        checkPermissionsAndRequest()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
-        with(mapView) {
-            location.locationPuck = createDefault2DPuck(withBearing = true)
-            location.enabled = true
-            location.showAccuracyRing = true
-            location.puckBearing = PuckBearing.HEADING
-            location.puckBearingEnabled = true
-        }
+//        with(mapView) {
+//            location.locationPuck = createDefault2DPuck(withBearing = true)
+//            location.enabled = true
+//            location.showAccuracyRing = true
+//            location.puckBearing = PuckBearing.HEADING
+//            location.puckBearingEnabled = true
+//        }
 
         val request = LocationProviderRequest.Builder()
             .interval(IntervalSettings.Builder().interval(0L).minimumInterval(0L).maximumInterval(0L).build())
@@ -273,13 +279,16 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             requestLocationPermission()
         }
 
-        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-            .addOnSuccessListener { location : android.location.Location? ->
-                if (location != null){
-                    kalmanFilter = KalmanFilter(location.latitude, location.longitude)
-                }
 
-            }
+
+
+//        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+//            .addOnSuccessListener { location : android.location.Location? ->
+//                if (location != null){
+//
+//                }
+//
+//            }
 
 
         val locationRequest = LocationRequest.Builder(1000)
@@ -302,13 +311,13 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                         val gps_x = userPixelLocation.x
                         val gps_y = userPixelLocation.y
 
-                        kalmanFilter.update(location.latitude, location.longitude)
-                        val smoothedLocation = kalmanFilter.getFilteredLocation()
+                        kalmanFilter.update(floatArrayOf(location.latitude.toFloat(), location.longitude.toFloat()))
+                        val filteredState = kalmanFilter.getState()
 
 
 
                         val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
-                        val point = Point.fromLngLat(smoothedLocation.longitude, smoothedLocation.latitude)
+                        val point = Point.fromLngLat(location.longitude, location.latitude)
                         Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
                         //Log.e(ContentValues.TAG, "Location update received: $location")
 
@@ -374,9 +383,9 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             }
         }
 
-        fusedLocationClient.requestLocationUpdates(locationRequest,
-            locationCallback,
-            Looper.getMainLooper())
+//        fusedLocationClient.requestLocationUpdates(locationRequest,
+//            locationCallback,
+//            Looper.getMainLooper())
 
         initManagers()
 
@@ -1584,6 +1593,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
             // Add the resulting line to the map.
             prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions_2)
+            navigationPoint = doorSelected as Point
             routeDisplayed = true
             doorSelected = null
             return
@@ -1854,6 +1864,119 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         }
     }
 
+    val locationListener = object : LocationListener {
+        override fun onLocationChanged(location: android.location.Location) {
+            val thing = location!!.speedAccuracyMetersPerSecond
+
+            Log.e("SERVER", "$location")
+
+            val userLocation = Point.fromLngLat(location!!.longitude, location.latitude)
+            val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
+            val gps_x = userPixelLocation.x
+            val gps_y = userPixelLocation.y
+
+
+//            kalmanFilter.update(floatArrayOf(location.latitude.toFloat(), location.longitude.toFloat()))
+            val filteredState = kalmanFilter.getState()
+
+
+
+            val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
+            val point = Point.fromLngLat(location.longitude, location.latitude)
+            Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
+            //Log.e(ContentValues.TAG, "Location update received: $location")
+
+            // Set options for the resulting circle layer.
+            val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+
+                // Define a geographic coordinate.
+                .withPoint(point)
+
+                // Style the circle that will be added to the map.
+                .withCircleRadius(6.0)
+                .withCircleColor("#4a90e2")
+                .withCircleStrokeWidth(2.5)
+                .withCircleStrokeColor("#FAF9F6")
+                .withCircleSortKey(1.0)
+
+            if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
+                // Delete the previous LocationPuck annotation
+                userAnnotationManager.delete(circleAnnotationId!!)
+            }
+
+            // Store last location for nav routing algorithm
+            userLastLocation = point
+
+            // Create and add the new circle annotation to the map
+            circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
+
+            if (routeDisplayed) {
+                Log.e(ContentValues.TAG, "Deleting route annotations: ${polylineAnnotationManager.annotations}")
+                polylineAnnotationManager.deleteAll()
+                routeDisplayed = false
+
+                val nearestUserPoint = navGraph.findClosestPoint(navGraph.walkPoints,userLastLocation)
+                navGraph.addEdge(nearestUserPoint,userLastLocation)
+
+                //Obtain the nearest point to the user-selected point and add the edge to navGraph
+                val nearestPoint = navGraph.findClosestPoint(navGraph.walkPoints,navigationPoint)
+                navGraph.addEdge(nearestPoint,navigationPoint)
+
+                val polylineAnnotationOptions: PolylineAnnotationOptions = PolylineAnnotationOptions()
+                    .withPoints(navGraph.calcRoute(userLastLocation, navigationPoint))
+                    // Style the line that will be added to the map.
+                    .withLineColor("#0f53ff")
+                    .withLineWidth(6.3)
+                    .withLineJoin(LineJoin.ROUND)
+                    .withLineSortKey(0.0)
+
+                // Add the resulting line to the map.
+
+
+                prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
+                routeDisplayed = true
+                pointSelected = null
+            }
+
+            // Use this location and update your UI
+
+        }
+
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+        override fun onProviderEnabled(provider: String) {}
+        override fun onProviderDisabled(provider: String) {}
+    }
+
+    private fun setUpLocationHandler() {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            requestLocationPermission()
+        }
+        locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        locationManager.requestLocationUpdates(
+            LocationManager.NETWORK_PROVIDER,
+            0, // Minimum time interval between updates in milliseconds
+            0f, // Minimum distance between updates in meters
+            locationListener
+        )
+    }
+
+
+
 
     private var lastPublishTime = 0L
     private val publishInterval = 20L // 1 second
@@ -1866,6 +1989,9 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 val x = event.values[0]
                 val y = event.values[1]
                 val z = event.values[2]
+                val dt = 0.1f
+                kalmanFilter = KalmanFilter()
+                kalmanFilter.predict(floatArrayOf(x, y), dt)
                 val t = "accelerator:"
                 val comma = ", "
 
