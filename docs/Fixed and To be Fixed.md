@@ -7,4 +7,4 @@ Completed Fixes and Items Tested:
 - Verified app loads on the phone and works and the data mentioned above is sent to the wiloc server 
 
 Needs to be fixed in the future:
-- The Gathering of Wifi data from the router still only works some of the time and is ultimatley very buggy and unreliable. In the futire the use of the router will need to br researched in order to more consistenly get wifi readings
+- The Gathering of Wifi data from the router still only works some of the time and is ultimatley very buggy and unreliable. In the futire the use of the router will need to br researched in order to more consistenly get wifi readings. This is most likely an issue with the router configurations and wifi connections 
