@@ -8,3 +8,4 @@ Completed Fixes and Items Tested:
 
 Needs to be fixed in the future:
 - The Gathering of Wifi data from the router still only works some of the time and is ultimatley very buggy and unreliable. In the futire the use of the router will need to br researched in order to more consistenly get wifi readings. This is most likely an issue with the router configurations and wifi connections 
+- The RPI also displays an overheating symbol when the CSI_node is left running for too long this is probably because of the rate and amount of data that is sending. 
