@@ -293,6 +293,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
         val locationRequest = LocationRequest.Builder(500)
             .setMinUpdateDistanceMeters(0f)
+            .setWaitForAccurateLocation(true)
             .setMinUpdateIntervalMillis(500)
             .setIntervalMillis(500)
             .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
@@ -304,8 +305,15 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 super.onLocationResult(locationResult)
                 if (locationResult != null) {
                     if (::kalmanFilter.isInitialized){
+                        wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
+                        val mac_address = wifiManager.connectionInfo.macAddress
+                        val currentTimeMillis = System.currentTimeMillis()
+                        val timeStamp = Timestamp(currentTimeMillis).toString()
                         val location: android.location.Location? = locationResult.lastLocation
-                        if ((location!!.accuracy < 150) && (location!!.speedAccuracyMetersPerSecond < 150)){
+                        if ((location!!.accuracy < 20) && (location!!.speedAccuracyMetersPerSecond < 20)){
+                            val send_latitude = location.latitude
+                            val send_longitude = location.longitude
+                            mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $send_latitude, $send_longitude")
                             val thing = location!!.speedAccuracyMetersPerSecond
                             Log.e("SERVER", "$location")
 
@@ -313,8 +321,8 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                             val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
                             val gps_x = userPixelLocation.x
                             val gps_y = userPixelLocation.y
-                            val offsetLongitude = 0.00012f
-                            val offsetLatitude = 0.000027f
+                            val offsetLongitude = 0.00013f
+                            val offsetLatitude = 0.000031f
 
 //                            kalmanFilter.update(floatArrayOf(location.latitude.toFloat() + offsetLatitude, location.longitude.toFloat() + offsetLongitude))
 //                            val filteredState = kalmanFilter.getState()
@@ -1989,10 +1997,14 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private val publishInterval = 20L // 1 second
 
     override fun onSensorChanged(event: SensorEvent?) {
-        val currentTime = System.currentTimeMillis()
+        val currentTime = event!!.timestamp
+        wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val mac_address = wifiManager.connectionInfo.macAddress
 
-        if (currentTime - lastPublishTime >= publishInterval) {
+        if (currentTime - lastPublishTime > 400000000) {
             if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+                val currentTimeMillis = System.currentTimeMillis()
+                val timeStamp = Timestamp(currentTimeMillis).toString()
                 val x = event.values[0]
                 val y = event.values[1]
                 val z = event.values[2]
@@ -2000,7 +2012,10 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 kalmanFilter = KalmanFilter()
                 kalmanFilter.predict(floatArrayOf(x, y), dt)
                 val t = "accelerator:"
-                val comma = ", "
+                val comma = ","
+
+                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+                mqttHandler.publish("test/topic",serverMessage)
 
                 g.apply {
                     text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
@@ -2009,11 +2024,16 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             }
 
             if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
+                val currentTimeMillis = System.currentTimeMillis()
+                val timeStamp = Timestamp(currentTimeMillis).toString()
                 val x = event.values[0]
                 val y = event.values[1]
                 val z = event.values[2]
                 val t = "gyroscope:"
-                val comma = ", "
+                val comma = ","
+
+                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+                mqttHandler.publish("test/topic",serverMessage)
 
                 b.apply {
                     text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)

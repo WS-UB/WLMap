@@ -11,10 +11,10 @@ class KalmanFilter {
     private val covariance = Array(4) { FloatArray(4) { 1f } }
 
     // Process noise matrix (how much we trust the prediction model)
-    private val processNoise = Array(4) { FloatArray(4) { 100f } }
+    private val processNoise = Array(4) { FloatArray(4) { 1000f } }
 
     // Measurement noise matrix (how much we trust the GPS data)
-    private val measurementNoise = Array(4) { FloatArray(4) { 0.000001f } }
+    private val measurementNoise = Array(4) { FloatArray(4) { 0.001f } }
 
     // Identity matrix for matrix calculations
     private val identity = Array(4) { FloatArray(4) { if (it == it) 1f else 0f } }
