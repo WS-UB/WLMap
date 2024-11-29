@@ -15,7 +15,6 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.net.wifi.WifiManager
-import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -36,7 +35,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
@@ -77,6 +75,9 @@ import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.toCameraOptions
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.eclipse.paho.client.mqttv3.MqttException
 import org.json.JSONArray
 import java.math.RoundingMode
@@ -1046,7 +1047,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             // Assuming you want to plot the first location received
             val location = updateLocation(locations[0].latitude,locations[0].longitude)
             val point = Point.fromLngLat(location.second,location.first)
-            //Log.e(ContentValues.TAG, "Location update received: $location")
+            Log.e(ContentValues.TAG, "Location update received: $location")
 
             // Set options for the resulting circle layer.
             val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
@@ -1669,51 +1670,61 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     }
 
     private fun updateLocation(newLatitude: Double, newLongitude: Double): Pair<Double, Double> {
-        var latestMessage:String? = null;
+        var latestMessage: String? = null
+
+        // Unsubscribe from other topics to avoid duplicate messages
+        mqttHandler.unsubscribe("test/topic")
         mqttHandler.subscribe("coordinate/topic")
 
-        mqttHandler.onMessageReceived = { message ->
-            val serverRunnable: Runnable = Runnable {
-                latestMessage = message // Store the received message in the variable
-                Log.e("SERVER", "Received message: $latestMessage") // Log the message
+        mqttHandler.onMessageReceived = { topic, message ->
+            if (topic == "coordinate/topic") { // Ensure message is from the correct topic
+                latestMessage = message // Store the received message
+                Log.e("SERVER", "Received message from $topic: $latestMessage")
 
-                // Extract coordinates from the message and update lastLocation
-                try {
-                    // Example to extract GPS coordinates from the message string
-                    val gpsPattern = Regex("GPS:\\s*([0-9.-]+),\\s*([0-9.-]+)")
-                    val matchResult = gpsPattern.find(latestMessage!!)
-                    if (matchResult != null && matchResult.groupValues.size == 3) {
-                        val receivedLatitude = matchResult.groupValues[1].toDouble()
-                        val receivedLongitude = matchResult.groupValues[2].toDouble()
-                        lastLocation = Pair(receivedLatitude, receivedLongitude)
-                        Log.d("SERVER", "Updated lastLocation to: $lastLocation")
-                    } else {
-                        Log.e("SERVER", "Failed to extract GPS coordinates: $latestMessage")
+                // Extract GPS coordinates in a coroutine for better async handling
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val gpsPattern = Regex("\\[\\[\\s*([0-9.-]+),\\s*([0-9.-]+)\\]\\]")
+                        val matchResult = gpsPattern.find(latestMessage!!)
+                        if (matchResult != null && matchResult.groupValues.size == 3) {
+                            val receivedLatitude = matchResult.groupValues[1].toDouble()
+                            val receivedLongitude = matchResult.groupValues[2].toDouble()
+                            lastLocation = Pair(receivedLatitude, receivedLongitude)
+                            Log.d("SERVER", "Updated lastLocation to: $lastLocation")
+                        } else {
+                            Log.e("SERVER", "Failed to extract GPS coordinates: $latestMessage")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("SERVER", "Failed to parse message: $latestMessage", e)
                     }
-                } catch (e: Exception) {
-                    Log.e("SERVER", "Failed to parse message: $latestMessage", e)
                 }
+            } else {
+                Log.e("SERVER", "Ignored message from topic: $topic")
             }
-            val thread: Thread = Thread(serverRunnable)
-            thread.start()
         }
 
+        // Smoothly update the location if `lastLocation` does not exist
         if (lastLocation == null) {
             lastLocation = Pair(newLatitude, newLongitude)
+            mqttHandler.subscribe("test/topic")
             return lastLocation!!
         }
+
         val alpha = 0.1 // Smoothing factor
         val latitude = lastLocation!!.first + alpha * (newLatitude - lastLocation!!.first)
         val longitude = lastLocation!!.second + alpha * (newLongitude - lastLocation!!.second)
         lastLocation = Pair(latitude, longitude)
+        Log.i("OutPut", "Print Info: $lastLocation")
+        mqttHandler.subscribe("test/topic")
         return lastLocation!!
     }
+
 
     private fun initMQTTHandler() {
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
-        mqttHandler.onMessageReceived = { message ->
+        mqttHandler.onMessageReceived = { topic, message ->
             val server_runnable: Runnable = Runnable {
                 Log.e("SERVER", message)
             }

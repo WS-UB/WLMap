@@ -1737,7 +1737,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         var latestMessage:String? = null;
         mqttHandler.subscribe("coordinate/topic")
 
-        mqttHandler.onMessageReceived = { message ->
+        mqttHandler.onMessageReceived = { topic, message ->
             val serverRunnable: Runnable = Runnable {
                 latestMessage = message // Store the received message in the variable
                 Log.e("SERVER", "Received message: $latestMessage") // Log the message
@@ -1783,7 +1783,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.subscribe("/deviceid")
-        mqttHandler.onMessageReceived = { message ->
+        mqttHandler.onMessageReceived = { topic, message ->
             val server_runnable: Runnable = Runnable {
                 Log.e("SERVER", message)
             }
