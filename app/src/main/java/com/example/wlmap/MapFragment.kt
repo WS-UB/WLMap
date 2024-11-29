@@ -1679,20 +1679,16 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
                 // Extract coordinates from the message and update lastLocation
                 try {
-                    // Assuming the message is a JSON string in the format: "[[latitude, longitude]]"
-                    val jsonArray = JSONArray(latestMessage) // Parse the outer array
-                    if (jsonArray.length() > 0) {
-                        val coordinatesArray = jsonArray.getJSONArray(0) // Get the first pair
-                        if (coordinatesArray.length() == 2) {
-                            // Extract latitude and longitude
-                            val receivedLatitude = coordinatesArray.getDouble(0)
-                            val receivedLongitude = coordinatesArray.getDouble(1)
-                            // Update lastLocation with the received coordinates
-                            lastLocation = Pair(receivedLatitude, receivedLongitude)
-                            Log.d("SERVER", "Updated lastLocation to: $lastLocation")
-                        } else {
-                            Log.e("SERVER", "Invalid coordinates format: $latestMessage")
-                        }
+                    // Example to extract GPS coordinates from the message string
+                    val gpsPattern = Regex("GPS:\\s*([0-9.-]+),\\s*([0-9.-]+)")
+                    val matchResult = gpsPattern.find(latestMessage!!)
+                    if (matchResult != null && matchResult.groupValues.size == 3) {
+                        val receivedLatitude = matchResult.groupValues[1].toDouble()
+                        val receivedLongitude = matchResult.groupValues[2].toDouble()
+                        lastLocation = Pair(receivedLatitude, receivedLongitude)
+                        Log.d("SERVER", "Updated lastLocation to: $lastLocation")
+                    } else {
+                        Log.e("SERVER", "Failed to extract GPS coordinates: $latestMessage")
                     }
                 } catch (e: Exception) {
                     Log.e("SERVER", "Failed to parse message: $latestMessage", e)
