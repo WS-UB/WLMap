@@ -1010,20 +1010,23 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             }
         }
 
-        // Set up action for sending user's location button
+        // Set up action for sending user's location button since that's what's buttons are about
         buttonSendLocation.setOnClickListener {
+            // Check the flag of sending messages so we can tell when to send message
             if (isSendingMessages) {
-                // Stop sending messages
-                buttonSendLocation.setBackgroundColor(Color.parseColor("#FF2929")) // Red color
+                // If the button is clicked, then we switch the background to red since that's the best indicator of stopping
+                buttonSendLocation.setBackgroundColor(Color.parseColor("#FF2929"))
+                // For clarification, we change the text of the button as well
                 buttonSendLocation.text = "Stop Sending"
+                // And we switch the flag to false to indicate that we stop sending messages
                 isSendingMessages = false
-                Log.i("SendLoc", "Stopped sending messages")
             } else {
-                // Resume sending messages
-                buttonSendLocation.setBackgroundColor(Color.parseColor("#69FF29")) // Green color
+                // If the button is clicked again, then we switch back to the previous background since that's the best indicator of continuing
+                buttonSendLocation.setBackgroundColor(Color.parseColor("#59C529"))
+                // For clarification, we revert the text of the button as well
                 buttonSendLocation.text = "Send Loc"
+                // And we switch the flag to false to continue sending messages
                 isSendingMessages = true
-                Log.i("SendLoc", "Resumed sending messages")
             }
         }
 
@@ -1291,7 +1294,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         buttonSendLocation = Button(requireContext())
         buttonSendLocation.id = View.generateViewId() // Generate a unique id for the button
         buttonSendLocation.text = "Send Loc"
-        buttonSendLocation.setBackgroundColor(Color.parseColor("#69FF29")) // Initial green color
+        buttonSendLocation.setBackgroundColor(Color.parseColor("#59C529")) // Initial green color
         buttonSendLocation.setTextColor(Color.WHITE)
 
         // Set padding inside the button
