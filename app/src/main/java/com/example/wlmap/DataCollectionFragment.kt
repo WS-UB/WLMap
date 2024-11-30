@@ -128,6 +128,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private lateinit var buttonConfirmLocation: Button
     private lateinit var popupWindow: PopupWindow
     private lateinit var latAndlongWindow: PopupWindow
+    private var isSendingMessages = true
 
     private lateinit var sensorManager: SensorManager
     private lateinit var b :Button
@@ -1010,10 +1011,20 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         }
 
         // Set up action for sending user's location button
-        buttonSendLocation.setOnClickListener(){
-            Log.i("SendLoc", "Location Sent!")
-            mqttHandler.publish("test/topic", accreadings + gyroreadings)
-//            mqttHandler.publish("test/topic", gyroreadings)
+        buttonSendLocation.setOnClickListener {
+            if (isSendingMessages) {
+                // Stop sending messages
+                buttonSendLocation.setBackgroundColor(Color.parseColor("#FF2929")) // Red color
+                buttonSendLocation.text = "Stop Sending"
+                isSendingMessages = false
+                Log.i("SendLoc", "Stopped sending messages")
+            } else {
+                // Resume sending messages
+                buttonSendLocation.setBackgroundColor(Color.parseColor("#69FF29")) // Green color
+                buttonSendLocation.text = "Send Loc"
+                isSendingMessages = true
+                Log.i("SendLoc", "Resumed sending messages")
+            }
         }
 
         // Set up action for confirming user's location button
@@ -1276,11 +1287,11 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         sendLocationButtons.orientation = LinearLayout.VERTICAL
         sendLocationButtons.layoutParams = paramsButtons
 
-        // Create and add buttons to the LinearLayout
+        // Create and add the toggle button (Send Location)
         buttonSendLocation = Button(requireContext())
         buttonSendLocation.id = View.generateViewId() // Generate a unique id for the button
         buttonSendLocation.text = "Send Loc"
-        buttonSendLocation.setBackgroundColor(Color.DKGRAY)
+        buttonSendLocation.setBackgroundColor(Color.parseColor("#69FF29")) // Initial green color
         buttonSendLocation.setTextColor(Color.WHITE)
 
         // Set padding inside the button
@@ -1293,8 +1304,14 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         )
         buttonParams1.gravity = Gravity.START
         buttonSendLocation.layoutParams = buttonParams1
+
+        // Toggle functionality for buttonSendLocation
+
+
+        // Add the toggle button to the LinearLayout
         sendLocationButtons.addView(buttonSendLocation)
 
+        // Create and add the second button (Confirm Location)
         buttonConfirmLocation = Button(requireContext())
         buttonConfirmLocation.id = View.generateViewId() // Generate a unique id for the button
         buttonConfirmLocation.text = "Rate Confidence"
@@ -1311,10 +1328,13 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         )
         buttonParams2.gravity = Gravity.START
         buttonConfirmLocation.layoutParams = buttonParams2
+
+        // Add the second button to the LinearLayout
         sendLocationButtons.addView(buttonConfirmLocation)
 
         return sendLocationButtons
     }
+
 
     private fun initMapView() {
         // Enable gestures
@@ -1581,21 +1601,10 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                 .withLineSortKey(0.0)
 
             // Add the resulting line to the map.
-
-
             prevRoute = polylineAnnotationManager.create(polylineAnnotationOptions)
             routeDisplayed = true
             pointSelected = null
-
-
-
-
-
-
         }
-
-
-
     }
 
     private fun grabWalk(graph: Graph): List<Point> {
@@ -1734,47 +1743,51 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     }
 
     private fun updateLocation(newLatitude: Double, newLongitude: Double): Pair<Double, Double> {
-        var latestMessage:String? = null;
+        var latestMessage: String? = null
+
+        // Unsubscribe from other topics to avoid duplicate messages
+        mqttHandler.unsubscribe("test/topic")
         mqttHandler.subscribe("coordinate/topic")
 
         mqttHandler.onMessageReceived = { topic, message ->
-            val serverRunnable: Runnable = Runnable {
-                latestMessage = message // Store the received message in the variable
-                Log.e("SERVER", "Received message: $latestMessage") // Log the message
+            if (topic == "coordinate/topic") { // Ensure message is from the correct topic
+                latestMessage = message // Store the received message
+                Log.e("SERVER", "Received message from $topic: $latestMessage")
 
-                // Extract coordinates from the message and update lastLocation
-                try {
-                    // Assuming the message is a JSON string in the format: "[[latitude, longitude]]"
-                    val jsonArray = JSONArray(latestMessage) // Parse the outer array
-                    if (jsonArray.length() > 0) {
-                        val coordinatesArray = jsonArray.getJSONArray(0) // Get the first pair
-                        if (coordinatesArray.length() == 2) {
-                            // Extract latitude and longitude
-                            val receivedLatitude = coordinatesArray.getDouble(0)
-                            val receivedLongitude = coordinatesArray.getDouble(1)
-                            // Update lastLocation with the received coordinates
+                // Extract GPS coordinates in a coroutine for better async handling
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val gpsPattern = Regex("\\[\\[\\s*([0-9.-]+),\\s*([0-9.-]+)\\]\\]")
+                        val matchResult = gpsPattern.find(latestMessage!!)
+                        if (matchResult != null && matchResult.groupValues.size == 3) {
+                            val receivedLatitude = matchResult.groupValues[1].toDouble()
+                            val receivedLongitude = matchResult.groupValues[2].toDouble()
                             lastLocation = Pair(receivedLatitude, receivedLongitude)
                             Log.d("SERVER", "Updated lastLocation to: $lastLocation")
                         } else {
-                            Log.e("SERVER", "Invalid coordinates format: $latestMessage")
+                            Log.e("SERVER", "Failed to extract GPS coordinates: $latestMessage")
                         }
+                    } catch (e: Exception) {
+                        Log.e("SERVER", "Failed to parse message: $latestMessage", e)
                     }
-                } catch (e: Exception) {
-                    Log.e("SERVER", "Failed to parse message: $latestMessage", e)
                 }
+            } else {
+                Log.e("SERVER", "Ignored message from topic: $topic")
             }
-            val thread: Thread = Thread(serverRunnable)
-            thread.start()
         }
 
+        // Smoothly update the location if `lastLocation` does not exist
         if (lastLocation == null) {
             lastLocation = Pair(newLatitude, newLongitude)
+            mqttHandler.subscribe("test/topic")
             return lastLocation!!
         }
+
         val alpha = 0.1 // Smoothing factor
         val latitude = lastLocation!!.first + alpha * (newLatitude - lastLocation!!.first)
         val longitude = lastLocation!!.second + alpha * (newLongitude - lastLocation!!.second)
         lastLocation = Pair(latitude, longitude)
+        mqttHandler.subscribe("test/topic")
         return lastLocation!!
     }
 
@@ -1826,9 +1839,13 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
+        if (!isSendingMessages) return // Exit early if message-sending is disabled
+
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
             val actualTime = event.timestamp
-            if (actualTime - lastUpdate > 400000000){
+            // Send a message every 8 milliseconds to avoid race condition
+            // Don't set this anywhere lower than 5 milliseconds or that will happen!
+            if (actualTime - lastUpdate > 800000000){
                 wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
                 val mac_address = wifiManager.connectionInfo.macAddress
                 val x=event.values[0]
@@ -1850,9 +1867,6 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                         val longitude_GPS = result?.longitude
                         mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $latitude_GPS, $longitude_GPS")
                     }
-//
-
-
                 } //The way the readings are set up to be published is just a test
 
                 g.apply{

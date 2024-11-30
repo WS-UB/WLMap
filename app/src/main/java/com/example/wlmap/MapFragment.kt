@@ -1714,7 +1714,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         val latitude = lastLocation!!.first + alpha * (newLatitude - lastLocation!!.first)
         val longitude = lastLocation!!.second + alpha * (newLongitude - lastLocation!!.second)
         lastLocation = Pair(latitude, longitude)
-        Log.i("OutPut", "Print Info: $lastLocation")
         mqttHandler.subscribe("test/topic")
         return lastLocation!!
     }
