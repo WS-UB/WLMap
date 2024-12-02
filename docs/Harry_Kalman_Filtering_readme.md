@@ -109,7 +109,7 @@ Kotlin and Android Studio are used to create the application on the Android plat
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [x] User can travel to any point within a room in Davis Hall.
 - [x] User's GPS data is cleaned/filtered using Kalman Filtering
-- [ ] User's GPS data updates consistently and accurately.
+- [x] User's GPS data updates consistently and accurately.
 
 ### Data Readings sent to MQTT client
 - [x] GPS data is sent to MQTT server.
