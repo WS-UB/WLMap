@@ -313,7 +313,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                         if ((location!!.accuracy < 20) && (location!!.speedAccuracyMetersPerSecond < 20)){
                             val send_latitude = location.latitude
                             val send_longitude = location.longitude
-                            mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $send_latitude, $send_longitude")
+//                            mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $send_latitude, $send_longitude")
                             val thing = location!!.speedAccuracyMetersPerSecond
                             Log.e("SERVER", "$location")
 
@@ -331,6 +331,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
                             val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
                             val point = Point.fromLngLat(location.longitude + offsetLongitude, location.latitude + offsetLatitude)
+//                            val point = testUserLocation //For testing purposes
                             Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
                             //Log.e(ContentValues.TAG, "Location update received: $location")
 
@@ -2011,7 +2012,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 val dt = 0.1f
                 kalmanFilter = KalmanFilter()
                 kalmanFilter.predict(floatArrayOf(x, y), dt)
-                val t = "accelerator:"
+                val t = "accelerator,"
                 val comma = ","
 
                 val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
@@ -2029,11 +2030,15 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 val x = event.values[0]
                 val y = event.values[1]
                 val z = event.values[2]
-                val t = "gyroscope:"
+                var t = "gyroscope,"
                 val comma = ","
 
-                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+                var serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
                 mqttHandler.publish("test/topic",serverMessage)
+
+//                t = "accelerator,"
+//                serverMessage = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+//                mqttHandler.publish("test/topic",serverMessage)
 
                 b.apply {
                     text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
@@ -2058,54 +2063,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                     // for ActivityCompat#requestPermissions for more details.
                     requestLocationPermission()
                 }
-//                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-//                    .addOnSuccessListener { location : android.location.Location? ->
-//                        if (::kalmanFilter.isInitialized){
-//                            if (location != null){
-//                                Log.e("SERVER", "$location")
-//
-//                                val userLocation = Point.fromLngLat(location!!.longitude, location.latitude)
-//                                val userPixelLocation = mapView.mapboxMap.pixelForCoordinate(userLocation)
-//                                val gps_x = userPixelLocation.x
-//                                val gps_y = userPixelLocation.y
-//
-//                                kalmanFilter.update(location.latitude, location.longitude)
-//                                val smoothedLocation = kalmanFilter.getFilteredLocation()
-//
-//
-//
-//                                val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
-//                                val point = Point.fromLngLat(smoothedLocation.longitude, smoothedLocation.latitude)
-//                                Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
-//                                //Log.e(ContentValues.TAG, "Location update received: $location")
-//
-//                                // Set options for the resulting circle layer.
-//                                val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
-//
-//                                    // Define a geographic coordinate.
-//                                    .withPoint(point)
-//
-//                                    // Style the circle that will be added to the map.
-//                                    .withCircleRadius(8.0)
-//                                    .withCircleColor("#4a90e2")
-//                                    .withCircleStrokeWidth(3.5)
-//                                    .withCircleStrokeColor("#FAF9F6")
-//                                    .withCircleSortKey(1.0)
-//
-//                                if (userAnnotationManager.annotations.contains(circleAnnotationId)) {
-//                                    // Delete the previous LocationPuck annotation
-//                                    userAnnotationManager.delete(circleAnnotationId!!)
-//                                }
-//
-//                                // Store last location for nav routing algorithm
-//                                userLastLocation = point
-//
-//                                // Create and add the new circle annotation to the map
-//                                circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
-//                            }
-//                        }
-//
-//                    }
             }
 
 //            GlobalScope.launch(Dispatchers.IO) {
