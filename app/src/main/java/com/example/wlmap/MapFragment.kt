@@ -281,17 +281,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         }
 
 
-
-
-        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-            .addOnSuccessListener { location : android.location.Location? ->
-                if (location != null){
-
-                }
-
-            }
-
-
         val locationRequest = LocationRequest.Builder(500)
             .setMinUpdateDistanceMeters(0f)
             .setWaitForAccurateLocation(true)
@@ -2052,24 +2041,9 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
                 mqttHandler.publish("test/topic",serverMessage)
 
-                g.apply{
-                    val x= 0.0
-                    val y= 0.0
-                    val z= 0.0
-                    val t="gyroscope:"
-                    val currentTimeMillis = System.currentTimeMillis()
-                    val timeStamp = Timestamp(currentTimeMillis).toString()
-                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                    locationProvider?.getLastLocation { result ->
-                        val currentTimeMillis = System.currentTimeMillis()
-                        val timeStamp = Timestamp(currentTimeMillis).toString()
-                        val latitude_GPS = result?.latitude
-                        val longitude_GPS = result?.longitude
-                        mqttHandler.publish("test/topic", "macAddress: $mac_address\ntimestamp: $timeStamp\ngyro: $x, $y, $z\naccel: $x, $y, $z\nGPS: $latitude_GPS, $longitude_GPS")
-                    }
-//                    mqttHandler.publish("test/topic", "gyroscope: $x, $y, $z\n")
-                    lastUpdate = actualTime
+                g.apply {
+                    text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    accreadings = "$t, $x, $y, $z\n"
                 }
             }
 
@@ -2121,7 +2095,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             lastPublishTime = currentTime
         }
     }
-
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
         return
