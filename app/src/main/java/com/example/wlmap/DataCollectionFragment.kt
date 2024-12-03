@@ -1799,6 +1799,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.subscribe("/deviceid")
+        mqttHandler.subscribe("/location")
         mqttHandler.onMessageReceived = { topic, message ->
             val server_runnable: Runnable = Runnable {
                 Log.e("SERVER", message)
@@ -1814,6 +1815,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         val long = point.longitude()
         val serverMessage = "ack,$long,$lat"
         mqttHandler.publish("test/topic",serverMessage)
+        mqttHandler.publish("/location",serverMessage)
     }
     override fun onDestroy() {
         sensorManager.unregisterListener(this)
@@ -1872,17 +1874,19 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                     }
                 } //The way the readings are set up to be published is just a test
 
-                g.apply{
-                    val x= 0.0
-                    val y= 0.0
-                    val z= 0.0
-                    val t="gyroscope,"
-                    gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                g.apply {
+                    val x = 0.0
+                    val y = 0.0
+                    val z = 0.0
+                    val t = "gyroscope,"
+                    gyroreadings = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
                     val currentTimeMillis = System.currentTimeMillis()
                     val timeStamp = Timestamp(currentTimeMillis).toString()
-                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                    mqttHandler.publish("test/topic",serverMessage)
+                    text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val serverMessage: String =
+                        t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma)
+                            .plus(timeStamp).plus(comma).plus(mac_address)
+                    mqttHandler.publish("test/topic", serverMessage)
                     lastUpdate = actualTime
                 }
             }

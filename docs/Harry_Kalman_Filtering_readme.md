@@ -1,8 +1,19 @@
-# WLMap
+# WLMap Feature Branch: Harry-Kalman-Filtering
 
 ## Description
 
-This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
+This branch implements the use of Kalman Filtering in WLMap. The goal of this feature is to reduce the noise of GPS, Accelerometer, and Gyroscope data that is being recorded by the application, which will provide an accurate depiction of a user's location when using WLMap.
+
+## Key Changes
+This feature introduces the following changes:
+
+   - Implemented the class "KalmanFilter," which can be passed a GPS location and returns the user's filtered/cleaned GPS location.
+   - Implemented a Location Observer, which provides the user's current location for Kalman Filtering.
+   - Checks were implemented to remove low-accuracy data from the locations that the Location Observer provides.
+   - The navigation line follows the user as the location changes.
+   - Implemented a getCurrentLocation observer for testing.
+
+[Link to worked/attempted solutions](https://docs.google.com/document/d/1AoPOC_SSGHcgHDT6rdT8-wDTFrpVAIkc0Pyi7ONLves/edit?usp=sharing)
 
 ## Problem Definition
 
@@ -68,6 +79,19 @@ Kotlin and Android Studio are used to create the application on the Android plat
    - Select the "Phone" category and select the Pixel 7a (API 35).
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
+  
+5. In your terminal, cd into the directory of your WLMap repository and type the following command.
+
+```
+   git checkout feature/Harry-Kalman-Filtering
+```
+
+6. Open and run the WLMap application in Android Studio, selecting the "Navigation" option on the home screen of WLMap.
+
+7. Once running the application, open LogCat and observe the following:
+   - User GPS location being printed to the server log.
+   - Filtered/cleaned user GPS location bring printed to the server log.
+
 
 ## Project Roadmap
 
@@ -84,6 +108,8 @@ Kotlin and Android Studio are used to create the application on the Android plat
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [x] User can travel to any point within a room in Davis Hall.
+- [x] User's GPS data is cleaned/filtered using Kalman Filtering
+- [x] User's GPS data updates consistently and accurately.
 
 ### Data Readings sent to MQTT client
 - [x] GPS data is sent to MQTT server.
