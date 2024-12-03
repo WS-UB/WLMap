@@ -1856,36 +1856,38 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
 
                 } //The way the readings are set up to be published is just a test
 
-                //g.apply{
-                    //val x= 0.0
-                    //val y= 0.0
-                    //val z= 0.0
-                    //val t="gyroscope,"
-                    //gyroreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    //val currentTimeMillis = System.currentTimeMillis()
-                    //val timeStamp = Timestamp(currentTimeMillis).toString()
-                    //text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    //val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                    //mqttHandler.publish("test/topic",serverMessage)
-                    //lastUpdate = actualTime
-                //}
+                g.apply {
+                    val x = 0.0
+                    val y = 0.0
+                    val z = 0.0
+                    val t = "gyroscope,"
+                    gyroreadings = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
+                    text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val serverMessage: String =
+                        t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma)
+                            .plus(timeStamp).plus(comma).plus(mac_address)
+                    mqttHandler.publish("test/topic", serverMessage)
+                    lastUpdate = actualTime
+                }
             }
             //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
         }
-        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
-            val x=event.values[0]
-            val y= event.values[1]
-            val z= event.values[2]
-            val t="gyroscope: "
-            val comma= ", "
-            g.apply{
-                val currentTimeMillis = System.currentTimeMillis()
-                val timeStamp = Timestamp(currentTimeMillis).toString()
-                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
-                mqttHandler.publish("test/topic",serverMessage)
-            }
-        }
+        //if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+          //  val x=event.values[0]
+           // val y= event.values[1]
+            //val z= event.values[2]
+            //val t="gyroscope: "
+            //val comma= ", "
+            //g.apply{
+              //  val currentTimeMillis = System.currentTimeMillis()
+               // val timeStamp = Timestamp(currentTimeMillis).toString()
+               // text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                //val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+                //mqttHandler.publish("test/topic",serverMessage)
+           // }
+        //}
     }
 
 
