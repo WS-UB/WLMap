@@ -1,8 +1,13 @@
-# WLMap
+# WLMap Feature Branch: Update Location
 
 ## Description
 
-This is a navigational android app used to navigate inside buildings to find classrooms, stairs, elevators, and bathrooms. 
+This branch updates the user's location on the map. The goal of this feature is to retrieve the information sent from MinIO, parse it into accessible information, and send the information back to the application so that the map can update the latest GPS coordinates based on the coordinates from MinIO database. 
+
+## Key Changes
+This feature introduces the following changes:
+- Reveal the blue dot at specific coordinates on Davis Hall to show that the information is successfully retrieved from MinIO and processed thoroughly
+- A toggle button in Data Collection that allows the user to continue sending information to the server or not.
 
 ## Problem Definition
 
@@ -16,9 +21,9 @@ This application will be designed and used by University at Buffalo students and
 Our current goals for this project include:
    - Resolving technical issues with the data collection app.
    - Developing a functional navigational interface.
-   - Making the front-end interface easier to interact with.
+   - Making the front-end interface easier to understand and more user-friendly.
    - Storing user/device data using server integration.
-   - Integrating server-side data processing using AWS.
+   - Integrating server-side data processing using PySpark.
    - Retrieving server-side data to update user position.
    - Gather and store user navigation data in a database.
    - Use stored reliable data for an A.I. training model.
@@ -28,7 +33,8 @@ Our current goals for this project include:
 Our current technology and development plans include:
    - Kotlin: Watch video tutorials and read documentation for better understanding.
    - UI/UX design: Watch video tutorials and refer to Figma UI outline as a reference for design features.
-   - MQTT: Read MQTT documentation and refer to Dr. Roshan for better understanding and implementation.
+   - MQTT: Read MQTT documentation.
+   - MinIO: Read MinIO documentation.
 
 
 
@@ -68,6 +74,26 @@ Kotlin and Android Studio are used to create the application on the Android plat
    - Select the "Phone" category and select the Pixel 7a (API 35).
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
+  
+5. In your terminal, cd into the directory of your WLMap repository and type the following command.
+
+```
+   git checkout feature/Update-Location
+```
+
+6. Open and run the WLMap application in Android Studio, selecting the "Navigation" option on the home screen of WLMap.
+
+7. Once running the application, open LogCat and observe the following:
+   - The user's GPS location is being printed on the server log.
+   - The log indicates if the MacAddress, timestamp, GPS, accelerometer, and gyroscope are being sent to MQTT
+   - The log also shows if the GPS location is being sent back to the app
+  
+8. Alternatively, click on the menu icon on the top left corner of the app, return to Home, and click on Data Collection.
+
+9. Once running the application, click on the green Send Loc button to stop sending info to the server and vice versa. For clarification, observe the following:
+   - The user's GPS location is being printed on the server log.
+   - The log indicates if the MacAddress, timestamp, GPS, accelerometer, and gyroscope are being sent to MQTT
+     
 
 ## Project Roadmap
 
@@ -75,6 +101,7 @@ Kotlin and Android Studio are used to create the application on the Android plat
 - [x] Enable the feature to fill in the information on the Share Data page.
 - [x] Integrating the interactive map fragment into the Navigation and Data Collection button.
 - [x] The Data Collection page can send the user's rate of confidence about their location on the map to the log.
+- [x] The Send Loc button in the Data Collection page can now be toggled to enable user to send data to the server or not.
 
 ### User readings
 - [x] User can view and record gyroscope and accelerometer readings.
@@ -84,8 +111,14 @@ Kotlin and Android Studio are used to create the application on the Android plat
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [x] User can travel to any point within a room in Davis Hall.
+- [x] User's GPS data is cleaned/filtered using Kalman Filtering
+- [ ] User's GPS data updates consistently and accurately.
 
 ### Data Readings sent to MQTT client
 - [x] GPS data is sent to MQTT server.
 - [x] Accelerometer data is sent to MQTT server.
 - [x] Gyroscope data is sent to MQTT server.
+- [x] User ID is sent to MQTT server.
+- [x] All the information above is stored in the MinIO database as parquet files
+- [x] Read parquet files from MinIO and send GPS coordinates back to the app
+- [x] Update the position on the map based on the GPS coordinates retrieved from the parquet files in MinIO
