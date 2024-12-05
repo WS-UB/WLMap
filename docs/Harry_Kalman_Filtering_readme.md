@@ -95,23 +95,23 @@ Kotlin and Android Studio are used to create the application on the Android plat
 
 ## Project Roadmap
 
-### User UI-UX
+### [User UI-UX](https://github.com/WS-UB/WLMap/tree/feature/user-UI-UX)
 - [x] Enable the feature to fill in the information on the Share Data page.
 - [x] Integrating the interactive map fragment into the Navigation and Data Collection button.
 - [x] The Data Collection page can send the user's rate of confidence about their location on the map to the log.
 
-### User readings
+### [User readings](https://github.com/WS-UB/WLMap/tree/feature/user-readings-Jessica)
 - [x] User can view and record gyroscope and accelerometer readings.
 
-### User click-ability/user search navigation
+### [User click-ability](https://github.com/WS-UB/WLMap/tree/feature/user-click-ability)/[User search navigation](https://github.com/WS-UB/WLMap/tree/feature/Harry-Kalman-Filtering)
 - [x] User can select any point in Davis Hall and can get navigational directions.
 - [x] The point the user selects is marked and displayed with a circle.
 - [x] Latitude and longitude coordinates are displayed on the point that the user selects.
 - [x] User can travel to any point within a room in Davis Hall.
 - [x] User's GPS data is cleaned/filtered using Kalman Filtering
-- [ ] User's GPS data updates consistently and accurately.
+- [x] User's GPS data updates consistently and accurately.
 
-### Data Readings sent to MQTT client
+### [Data Readings sent to MQTT client](https://github.com/WS-UB/WLMap/tree/feature/send-IMU-GPS-Data)
 - [x] GPS data is sent to MQTT server.
 - [x] Accelerometer data is sent to MQTT server.
 - [x] Gyroscope data is sent to MQTT server.
