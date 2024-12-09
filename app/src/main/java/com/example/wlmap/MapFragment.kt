@@ -261,6 +261,19 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             Log.e("SERVER", "Failed to get device location provider")
         }
 
+        val locationObserver = object: LocationObserver {
+            override fun onLocationUpdateReceived(locations: MutableList<Location>) {
+                val currentTimeMillis = System.currentTimeMillis()
+                val timeStamp = Timestamp(currentTimeMillis).toString()
+                val latitude_GPS = locations[0].latitude
+                val longitude_GPS = locations[0].longitude
+                mqttHandler.publish("test/topic", "GPS,$timeStamp,$latitude_GPS, $longitude_GPS")
+            }
+        }
+
+
+        locationProvider?.addLocationObserver(locationObserver)
+
         if (ActivityCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -391,7 +404,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
                     }
 
-                        // Use this location and update your UI
+                    // Use this location and update your UI
                 }
             }
         }
