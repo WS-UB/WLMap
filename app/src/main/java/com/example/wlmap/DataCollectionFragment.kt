@@ -1857,7 +1857,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                 val y= event.values[1]
                 val z= event.values[2]
                 val t="accelerator,"
-                val comma= ", "
+                val comma= ","
                 accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
                 b.apply{
                     val currentTimeMillis = System.currentTimeMillis()
