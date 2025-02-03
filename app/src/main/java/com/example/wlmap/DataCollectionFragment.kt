@@ -74,6 +74,7 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.random.Random
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
@@ -97,7 +98,6 @@ import java.sql.Timestamp
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
     private val serverUri = "tcp://128.205.218.189:1883" // Server address
-    private val clientId = "001000"  // Client ID
     private val serverTopic = "receive-wl-map"  // ???
     private val STYLE_CUSTOM = "asset://style.json" // ???
     private val FLOOR1_LAYOUT = "davis01"
@@ -1796,6 +1796,10 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
 
     private fun initMQTTHandler() {
         mqttHandler = MqttHandler()
+
+        val clientId = Random.nextInt(100000, 999999).toString()
+        Log.e("SERVER", "Unique client ID: $clientId")
+
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
         mqttHandler.subscribe("/deviceid")
@@ -1857,7 +1861,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                 val y= event.values[1]
                 val z= event.values[2]
                 val t="accelerator,"
-                val comma= ", "
+                val comma= ","
                 accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
                 b.apply{
                     val currentTimeMillis = System.currentTimeMillis()
