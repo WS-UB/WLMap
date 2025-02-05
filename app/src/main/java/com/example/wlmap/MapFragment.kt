@@ -7,6 +7,7 @@ import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
+import android.content.Context.SENSOR_SERVICE
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Color
@@ -1892,16 +1893,13 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         val density = Resources.getSystem().displayMetrics.density
         return (this * density).toInt()
     }
-    private fun setUpSensor() {
-        // Use the correct context to get the system service
-        val READINGRATE = 5000000
-        sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
-
-        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
-            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
-        }
+    private fun setUpSensor(){
+        sensorManager = requireActivity().getSystemService(SENSOR_SERVICE) as SensorManager
 
         sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.also{
+            sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also{
             sensorManager.registerListener(this,it,SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
@@ -2027,12 +2025,11 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private val publishInterval = 20L // 1 second
 
     override fun onSensorChanged(event: SensorEvent?) {
-        val currentTime = event!!.timestamp
         wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
         val mac_address = wifiManager.connectionInfo.macAddress
-
-        if (currentTime - lastPublishTime > 400000000) {
-            if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            val currentTime = event.timestamp
+            if (currentTime - lastPublishTime > 400000000) {
                 val currentTimeMillis = System.currentTimeMillis()
                 val timeStamp = Timestamp(currentTimeMillis).toString()
                 val x = event.values[0]
@@ -2044,63 +2041,89 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 val t = "accelerator,"
                 val comma = ","
 
-                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                mqttHandler.publish("test/topic",serverMessage)
+                val serverMessage: String =
+                    t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
+                        .plus(comma).plus(mac_address)
+                mqttHandler.publish("test/topic", serverMessage)
 
                 g.apply {
                     text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
                     accreadings = "$t, $x, $y, $z\n"
                 }
-            }
 
-            if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
-                val currentTimeMillis = System.currentTimeMillis()
-                val timeStamp = Timestamp(currentTimeMillis).toString()
-                val x = event.values[0]
-                val y = event.values[1]
-                val z = event.values[2]
-                var t = "gyroscope,"
-                val comma = ","
-
-                var serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                mqttHandler.publish("test/topic",serverMessage)
-
-//                t = "accelerator,"
-//                serverMessage = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-//                mqttHandler.publish("test/topic",serverMessage)
+                lastPublishTime = currentTime
 
                 b.apply {
+                    val x = 0.0
+                    val y = 0.0
+                    val z = 0.0
+                    val t = "gyroscope,"
+                    gyroreadings = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
                     text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    gyroreadings = "$t, $x, $y, $z\n"
+                    val serverMessage: String =
+                        t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma)
+                            .plus(timeStamp).plus(comma).plus(mac_address)
+                    mqttHandler.publish("test/topic", serverMessage)
+                    lastPublishTime = currentTime
                 }
+            }
+        }
+
+//        if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
+//            val currentTime = event.timestamp
+//            if (currentTime - lastPublishTime > 400000000) {
+//                val currentTimeMillis = System.currentTimeMillis()
+//                val timeStamp = Timestamp(currentTimeMillis).toString()
+//                val x = event.values[0]
+//                val y = event.values[1]
+//                val z = event.values[2]
+//                var t = "gyroscope,"
+//                val comma = ","
+//
+//                var serverMessage: String =
+//                    t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma)
+//                        .plus(timeStamp)
+//                        .plus(comma).plus(mac_address)
+//                mqttHandler.publish("test/topic", serverMessage)
+//
+////                t = "accelerator,"
+////                serverMessage = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
+////                mqttHandler.publish("test/topic",serverMessage)
+//
+//                b.apply {
+//                    text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                    gyroreadings = "$t, $x, $y, $z\n"
+//                }
+//
+//                lastPublishTime = currentTime
+//            }
+//        }
 //                mqttHandler.publish("/deviceid", deviceID.toString())
 
-                if (ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    requestLocationPermission()
-                }
+            if (ActivityCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                requestLocationPermission()
             }
 
 //            GlobalScope.launch(Dispatchers.IO) {
 //                mqttHandler.publish("/deviceid", deviceID.toString())
 //            }
-
-            lastPublishTime = currentTime
         }
-    }
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
         return
