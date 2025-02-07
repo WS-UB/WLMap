@@ -1804,6 +1804,8 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         mqttHandler.subscribe("test/topic")
         mqttHandler.subscribe("/deviceid")
         mqttHandler.subscribe("/location")
+        mqttHandler.subscribe("/imu")
+        mqttHandler.subscribe("/gps")
         mqttHandler.onMessageReceived = { topic, message ->
             val server_runnable: Runnable = Runnable {
                 Log.e("SERVER", message)
@@ -1854,7 +1856,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val actualTime = event.timestamp
             // Send a message every 8 milliseconds to avoid race condition
             // Don't set this anywhere lower than 5 milliseconds or that will happen!
-            if (actualTime - lastUpdate > 800000000){
+            if (actualTime - lastUpdate > 200000000){
                 wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
                 val mac_address = wifiManager.connectionInfo.macAddress
                 val x=event.values[0]
@@ -1868,13 +1870,13 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                     val timeStamp = Timestamp(currentTimeMillis).toString()
                     text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
                     val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                    mqttHandler.publish("test/topic",serverMessage)
+                    mqttHandler.publish("/imu",serverMessage)
                     locationProvider?.getLastLocation { result ->
                         val currentTimeMillis = System.currentTimeMillis()
                         val timeStamp = Timestamp(currentTimeMillis).toString()
                         val latitude_GPS = result?.latitude
                         val longitude_GPS = result?.longitude
-                        mqttHandler.publish("test/topic", "GPS,$mac_address,$timeStamp, $latitude_GPS, $longitude_GPS")
+                        mqttHandler.publish("/gps", "GPS,$mac_address,$timeStamp, $latitude_GPS, $longitude_GPS")
                     }
                 } //The way the readings are set up to be published is just a test
 
@@ -1890,26 +1892,39 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                     val serverMessage: String =
                         t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma)
                             .plus(timeStamp).plus(comma).plus(mac_address)
-                    mqttHandler.publish("test/topic", serverMessage)
+                    mqttHandler.publish("/imu", serverMessage)
                     lastUpdate = actualTime
                 }
             }
             //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
         }
 //        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE){
+//            val actualTime = event.timestamp
+//            if (actualTime - lastUpdate > 200000000){
+//            wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
+//            val mac_address = wifiManager.connectionInfo.macAddress
 //            val x=event.values[0]
 //            val y= event.values[1]
 //            val z= event.values[2]
 //            val t="gyroscope: "
-//            val comma= ", "
-//            g.apply{
-//                val currentTimeMillis = System.currentTimeMillis()
-//                val timeStamp = Timestamp(currentTimeMillis).toString()
-//                text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-//                val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp)
-//                mqttHandler.publish("test/topic",serverMessage)
-//            }
+//            val comma= ","
+//            g.apply {
+//                    val x = 0.0
+//                    val y = 0.0
+//                    val z = 0.0
+//                    val t = "gyroscope,"
+//                    gyroreadings = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                    val currentTimeMillis = System.currentTimeMillis()
+//                    val timeStamp = Timestamp(currentTimeMillis).toString()
+//                    text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                    val serverMessage: String =
+//                        t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma)
+//                            .plus(timeStamp).plus(comma).plus(mac_address)
+//                    mqttHandler.publish("/imu", serverMessage)
+//                    lastUpdate = actualTime
+//                }
 //        }
+//            }
     }
 
 
