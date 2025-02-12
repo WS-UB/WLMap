@@ -1,19 +1,16 @@
-# WLMap Feature Branch: Harry-Kalman-Filtering
+# WLMap Feature Branch: debugging-Harry
 
 ## Description
 
-This branch implements the use of Kalman Filtering in WLMap. The goal of this feature is to reduce the noise of GPS, Accelerometer, and Gyroscope data that is being recorded by the application, which will provide an accurate depiction of a user's location when using WLMap.
+This branch fixes the many issues and bugs discovered upon startup of the WLMap application during the Spring Semester of CSE 302/402. 
 
 ## Key Changes
 This feature introduces the following changes:
 
-- Implemented the class "KalmanFilter," which can be passed a GPS location and returns the user's filtered/cleaned GPS location.
-- Implemented a Location Observer, which provides the user's current location for Kalman Filtering.
-- Checks were implemented to remove low-accuracy data from the locations that the Location Observer provides.
-- The navigation line follows the user as the location changes.
-- Implemented a getCurrentLocation observer for testing.
-
-[Link to worked/attempted solutions](https://docs.google.com/document/d/1AoPOC_SSGHcgHDT6rdT8-wDTFrpVAIkc0Pyi7ONLves/edit?usp=sharing)
+- The MQTTHandler.kt file was modified to reduce timeout scenarios on startup.
+- Generate a unique ID for each instance of the MQTT client when the app is run across multiple devices.
+- IMU and GPS data are sent to their own respective topics within MQTT ("/imu" and "/gps")
+- Implemented a new way to generate a consistent unique ID for each device without utilizing a device MAC Address.
 
 ## Problem Definition
 
