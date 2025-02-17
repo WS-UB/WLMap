@@ -51,7 +51,7 @@ class MqttHandler {
             })
 
             // Connect the client
-            client?.connect(connectOptions)
+            client!!.connect()
             println("Connected to broker: $brokerUrl")
 
         } catch (e: MqttException) {
