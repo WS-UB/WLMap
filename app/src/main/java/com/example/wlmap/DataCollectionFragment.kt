@@ -1818,11 +1818,15 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     }
 
     private fun publishLocation(point: Point) {
-        val lat = point.latitude()
-        val long = point.longitude()
-        val serverMessage = "ack,$long,$lat"
-        mqttHandler.publish("test/topic",serverMessage)
-        mqttHandler.publish("/location",serverMessage)
+        if (isSendingMessages){
+            val lat = point.latitude()
+            val long = point.longitude()
+            val currentTimeMillis = System.currentTimeMillis()
+            val timeStamp = Timestamp(currentTimeMillis).toString()
+            val serverMessage = "point,$long,$lat,$timeStamp"
+            for (i in 1..5)  mqttHandler.publish("/gps", "GPS,$randomDeviceID,$timeStamp, $lat, $long")
+
+        }
     }
     override fun onDestroy() {
         sensorManager.unregisterListener(this)
@@ -1879,7 +1883,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                         val timeStamp = Timestamp(currentTimeMillis).toString()
                         val latitude_GPS = result?.latitude
                         val longitude_GPS = result?.longitude
-                        mqttHandler.publish("/gps", "GPS,$randomDeviceID,$timeStamp, $latitude_GPS, $longitude_GPS")
+//                        mqttHandler.publish("/gps", "GPS,$randomDeviceID,$timeStamp, $latitude_GPS, $longitude_GPS")
                     }
                     lastUpdate = actualTime
                 } //The way the readings are set up to be published is just a test

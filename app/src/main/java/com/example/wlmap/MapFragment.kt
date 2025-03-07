@@ -296,7 +296,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
                 if (locationResult != null) {
-                    if (::kalmanFilter.isInitialized){
                         wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
                         val mac_address = wifiManager.connectionInfo.macAddress
                         val currentTimeMillis = System.currentTimeMillis()
@@ -322,7 +321,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
 
 
                             val screenCoordinate = ScreenCoordinate(gps_x, gps_y)
-                            val point = Point.fromLngLat(location.longitude + offsetLongitude, location.latitude + offsetLatitude)
+                            val point = Point.fromLngLat(location.longitude, location.latitude)
 //                            val point = testUserLocation //For testing purposes
                             Log.e("SERVER", "Estimated Position: (x: ${point.longitude()}, y: ${point.latitude()})")
                             //Log.e(ContentValues.TAG, "Location update received: $location")
@@ -380,8 +379,6 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                             }
                         }
 
-
-                    }
 
                         // Use this location and update your UI
                 }
@@ -1877,7 +1874,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         val currentTimeMillis = System.currentTimeMillis()
         val timeStamp = Timestamp(currentTimeMillis).toString()
         val serverMessage = "point,$long,$lat,$timeStamp"
-        mqttHandler.publish("test/topic",serverMessage)
+        mqttHandler.publish("/topic",serverMessage)
     }
     override fun onDestroy() {
         sensorManager.unregisterListener(this)
