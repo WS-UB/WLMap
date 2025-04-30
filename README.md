@@ -1,15 +1,4 @@
-# WLMap Feature Branch: random_deviceID
-
-## Description
-
-This branch addes a random device ID generator to the Data Collection section, as well as allowing a user to manually input their GPS location by tapping on their screen.
-
-## Key Changes
-
-This feature introduces the following changes:
-
-- Random device ID generator for the Data Collection portion.
-- Manual input of a user's GPS location.
+# WLMap
 
 ## Problem Definition
 
@@ -65,16 +54,16 @@ Kotlin and Android Studio are used to create the application on the Android plat
 
 2. Clone the appropriate repository.
 
-3. Allow Gradle to install and update the AGP (Android Gradle Plugin) to version 8.6 if prompted
+3. Allow Gradle to install and update the AGP (Android Gradle Plugin) to the lastest version (**version 8.8 as of 05/01/25**) if prompted
 
    - If you are not prompted to update the AGP, follow these instructions:
    - Select the "Tools" drop-down menu on the top of the IDE.
    - Select "AGP Upgrade Assistant."
-   - Select version 8.6.
+   - Select the latest version.
    - Select "Run selected steps."
    - After the update is complete, select "Refresh."
 
-4. Select "Device Manager" on the right-side app bar and install the device emulator.
+4. Select **_Device Manager_** on the right-side app bar and install the device emulator.
 
    - If there are any other created devices, end their processes and remove them.
    - Click the "+" to and select "Create Virtual Device."
@@ -82,17 +71,23 @@ Kotlin and Android Studio are used to create the application on the Android plat
    - Press "Finish."
    - After the device is installed, select the "play" button next to the installed device to begin running it.
 
-5. In your terminal, cd into the directory of your WLMap repository and type the following command.
+**OPTIONAL**: Instead of utiilzing the **_Device Manager_**, you can utilize either the Google Pixel 7a or Google Pixel 8a Android Phones that are avaliable in Davis 113X. Make a direct connection from the phone to the computer running Android Studio via USB-C.
+**Make sure Dr. Roshan Ayyalasomayajula knows you are in possession of the phones before taking them out of the lab for testing**.
 
-```
-   git checkout feature/Harry-Kalman-Filtering
-```
+6. Open and run the WLMap application in Android Studio, selecting the "Data Collection" option on the home screen of WLMap.
 
-6. Open and run the WLMap application in Android Studio, selecting the "Navigation" option on the home screen of WLMap.
+7. Once running the application, open LogCat and observe that GPS and IMU data is being streamed from the phone via MQTT.
 
-7. Once running the application, open LogCat and observe the following:
-   - User GPS location being printed to the server log.
-   - Filtered/cleaned user GPS location bring printed to the server log.
+## Branch READMEs
+
+For specific inquiries on the specific feature branches, check below for the following links.
+
+1. [debugging-Harry.md](/docs/debugging-Harry.md)
+1. [Fixed and To be Fixed.md](/docs/Fixed%20and%20To%20be%20Fixed.md)
+1. [Harry_Kalman_Filtering_readme.md](/docs/Harry_Kalman_Filtering_readme.md)
+1. [random_deviceID.md](/docs/random_deviceID.md)
+1. [Troubleshooting.md](/docs/Troubleshooting.md)
+1. [Update-Location-documentation.md](/docs/Update-Location-documentation.md)
 
 ## Project Roadmap
 
