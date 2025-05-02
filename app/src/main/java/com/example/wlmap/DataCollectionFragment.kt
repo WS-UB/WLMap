@@ -1913,7 +1913,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                         val timeStamp = Timestamp(currentTimeMillis).toString()
                         val latitude_GPS = result?.latitude
                         val longitude_GPS = result?.longitude
-                        //mqttHandler.publish("/gps", "GPS_RAW,$randomDeviceID,$timeStamp, $latitude_GPS, $longitude_GPS")
+                        mqttHandler.publish("/gps", "GPS_RAW,$randomDeviceID,$timeStamp, $latitude_GPS, $longitude_GPS")
                     }
                     lastUpdate = actualTime
                 } //The way the readings are set up to be published is just a test
