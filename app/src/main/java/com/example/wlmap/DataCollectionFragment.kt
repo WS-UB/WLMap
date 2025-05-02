@@ -94,6 +94,7 @@ import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import org.json.JSONArray
 import java.sql.Timestamp
+import org.json.JSONObject
 
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -154,6 +155,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private val locationService : LocationService = LocationServiceFactory.getOrCreate()
     private var locationProvider: DeviceLocationProvider? = null
     private lateinit var wifiManager: WifiManager
+    private lateinit var predictionAnnotationManager: CircleAnnotationManager
     var deviceID = View.generateViewId()
 
     private fun requestLocationPermission() {
@@ -1046,6 +1048,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         userAnnotationManager = annotationAPI.createCircleAnnotationManager()
         doorAnnotationManager = annotationAPI.createCircleAnnotationManager()
         pointAnnotationManager = annotationAPI.createCircleAnnotationManager()
+        predictionAnnotationManager = annotationAPI.createCircleAnnotationManager()
     }
 
     private fun userLocationPuck() {
@@ -1802,20 +1805,45 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         Log.e("SERVER", "Unique client ID: $clientId")
 
         mqttHandler.connect(serverUri, clientId)
-        mqttHandler.subscribe("test/topic")
-        mqttHandler.subscribe("/deviceid")
-        mqttHandler.subscribe("/location")
-        mqttHandler.subscribe("/imu")
-        mqttHandler.subscribe("/gps")
-        mqttHandler.onMessageReceived = { topic, message ->
-            val server_runnable: Runnable = Runnable {
-                Log.e("SERVER", message)
-            }
-            val thread: Thread = Thread(server_runnable)
-            thread.start()
-        }
-        mqttHandler.publish("/deviceid",deviceID.toString())
-    }
+        listOf(
+            "test/topic",
+            "/deviceid",
+            "/location",
+            "/imu",
+            "/gps",
+            "/predicted_location"
+          ).forEach { mqttHandler.subscribe(it) }
+      
+          mqttHandler.onMessageReceived = { topic, message ->
+              if (topic == "/predicted_location") {
+                  // parse JSON payload, draw red dot on the map
+                  try {
+                      val json = JSONObject(message)
+                      val lat = json.getDouble("latitude")
+                      val lon = json.getDouble("longitude")
+                      requireActivity().runOnUiThread {
+                          predictionAnnotationManager.deleteAll()
+                          predictionAnnotationManager.create(
+                              CircleAnnotationOptions()
+                                .withPoint(Point.fromLngLat(lon, lat))
+                                .withCircleColor("#ff0000")
+                                .withCircleRadius(7.0)
+                                .withCircleOpacity(0.9)
+                          )
+                      }
+                  } catch (e: Exception) {
+                      Log.e("MQTT", "Invalid prediction JSON", e)
+                  }
+              } else {
+                  // your original threading/logging for everything else
+                  val serverRunnable = Runnable { Log.e("SERVER", message) }
+                  Thread(serverRunnable).start()
+              }
+          }
+      
+          // announce yourself once at startup
+          mqttHandler.publish("/deviceid", deviceID.toString())
+      }
 
     private fun publishLocation(point: Point) {
         if (isSendingMessages){
