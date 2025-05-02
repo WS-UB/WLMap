@@ -20,6 +20,7 @@ Our current goals for this project include:
 - Retrieving server-side data to update user position.
 - Gather and store user navigation data in a database.
 - Use stored reliable data for an A.I. training model.
+- Leveraging the A.I. training model’s predictions to continuously update and display predicted user location on the map.
 
 ## Technology and Development Plans
 
@@ -39,6 +40,8 @@ This app can provide the following:
 - An interactable UI.
 - Navigational map option.
 - Data collection map option.
+- Updating the prediction user location consistency
+- Showing the user location with the phone gps
 
 ## Tools
 
@@ -88,6 +91,7 @@ For specific inquiries on the specific feature branches, check below for the fol
 1. [random_deviceID.md](/docs/random_deviceID.md)
 1. [Troubleshooting.md](/docs/Troubleshooting.md)
 1. [Update-Location-documentation.md](/docs/Update-Location-documentation.md)
+1. [Prediction_gps_Yufeng,md](/docs/Prediction_gps_Yufeng.md)
 
 ## Project Roadmap
 
@@ -115,3 +119,7 @@ For specific inquiries on the specific feature branches, check below for the fol
 - [x] GPS data is sent to MQTT server.
 - [x] Accelerometer data is sent to MQTT server.
 - [x] Gyroscope data is sent to MQTT server.
+
+### Data Receiving from MQTT server
+- [x] Prediction GPS data is receive from MQTT server
+
