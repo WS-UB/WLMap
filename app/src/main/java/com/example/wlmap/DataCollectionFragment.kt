@@ -1800,50 +1800,50 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
 
     private fun initMQTTHandler() {
         mqttHandler = MqttHandler()
-
         val clientId = Random.nextInt(100000, 999999).toString()
-        Log.e("SERVER", "Unique client ID: $clientId")
-
         mqttHandler.connect(serverUri, clientId)
+      
+        // subscribe to *exactly* the topics your server is publishing on:
         listOf(
-            "test/topic",
-            "/deviceid",
-            "/location",
-            "/imu",
-            "/gps",
-            "/predicted_location"
-          ).forEach { mqttHandler.subscribe(it) }
+          "test/topic",
+          "/deviceid",
+          "/location",
+          "/imu",
+          "/gps",
+          "/predicted_location"      // <-- no leading slash if that’s what the broker uses
+        ).forEach { mqttHandler.subscribe(it) }
       
-          mqttHandler.onMessageReceived = { topic, message ->
-              if (topic == "/predicted_location") {
-                  // parse JSON payload, draw red dot on the map
-                  try {
-                      val json = JSONObject(message)
-                      val lat = json.getDouble("latitude")
-                      val lon = json.getDouble("longitude")
-                      requireActivity().runOnUiThread {
-                          predictionAnnotationManager.deleteAll()
-                          predictionAnnotationManager.create(
-                              CircleAnnotationOptions()
-                                .withPoint(Point.fromLngLat(lon, lat))
-                                .withCircleColor("#ff0000")
-                                .withCircleRadius(7.0)
-                                .withCircleOpacity(0.9)
-                          )
-                      }
-                  } catch (e: Exception) {
-                      Log.e("MQTT", "Invalid prediction JSON", e)
-                  }
-              } else {
-                  // your original threading/logging for everything else
-                  val serverRunnable = Runnable { Log.e("SERVER", message) }
-                  Thread(serverRunnable).start()
+        mqttHandler.onMessageReceived = { topic, message ->
+          Log.d("MQTT", "onMessageReceived: $topic → $message")
+      
+         if(topic=="/predicted_location") {
+              try {
+                val json = JSONObject(message)
+                val lat  = json.getDouble("latitude")
+                val lon  = json.getDouble("longitude")
+                  predictionAnnotationManager.deleteAll()
+
+                  val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+                      .withPoint(Point.fromLngLat(lon, lat))
+                      .withCircleColor("#2bff00")
+                      .withCircleRadius(7.0)
+                      .withCircleOpacity(0.9)
+
+                  predictionAnnotationManager.create(circleAnnotationOptions)
+              } catch (e:Exception) {
+                Log.e("MQTT", "Invalid prediction JSON", e)
               }
-          }
-      
-          // announce yourself once at startup
+            }
+            else {
+                // fall-back logging for everything else
+                Log.e("SERVER", message)
+              }
+            }
+          
+        
+          // let the broker know who you are
           mqttHandler.publish("/deviceid", deviceID.toString())
-      }
+    }
 
     private fun publishLocation(point: Point) {
         if (isSendingMessages){
