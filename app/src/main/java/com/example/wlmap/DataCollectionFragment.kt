@@ -94,6 +94,7 @@ import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import org.json.JSONArray
 import java.sql.Timestamp
+import org.json.JSONObject
 
 
 class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -154,6 +155,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
     private val locationService : LocationService = LocationServiceFactory.getOrCreate()
     private var locationProvider: DeviceLocationProvider? = null
     private lateinit var wifiManager: WifiManager
+    private lateinit var predictionAnnotationManager: CircleAnnotationManager
     var deviceID = View.generateViewId()
 
     private fun requestLocationPermission() {
@@ -1046,6 +1048,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         userAnnotationManager = annotationAPI.createCircleAnnotationManager()
         doorAnnotationManager = annotationAPI.createCircleAnnotationManager()
         pointAnnotationManager = annotationAPI.createCircleAnnotationManager()
+        predictionAnnotationManager = annotationAPI.createCircleAnnotationManager()
     }
 
     private fun userLocationPuck() {
@@ -1347,8 +1350,11 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         mapView.gestures.pinchToZoomEnabled = true
 
         // Load custom on-device style
-        mapView.mapboxMap.loadStyle(style = STYLE_CUSTOM)
-
+        mapView.mapboxMap.loadStyle(style = STYLE_CUSTOM) { style ->
+            // now that the style is ready, you can
+            initManagers()
+            initMQTTHandler()
+        }
         // Get and load the style for floor 1 of Davis Hall
         mapView.mapboxMap.getStyle { style ->
             val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
@@ -1797,24 +1803,48 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
 
     private fun initMQTTHandler() {
         mqttHandler = MqttHandler()
-
         val clientId = Random.nextInt(100000, 999999).toString()
-        Log.e("SERVER", "Unique client ID: $clientId")
-
         mqttHandler.connect(serverUri, clientId)
-        mqttHandler.subscribe("test/topic")
-        mqttHandler.subscribe("/deviceid")
-        mqttHandler.subscribe("/location")
-        mqttHandler.subscribe("/imu")
-        mqttHandler.subscribe("/gps")
+      
+        // subscribe to *exactly* the topics your server is publishing on:
+        listOf(
+          "test/topic",
+          "/deviceid",
+          "/location",
+          "/imu",
+          "/gps",
+          "/predicted_location"      // <-- no leading slash if that’s what the broker uses
+        ).forEach { mqttHandler.subscribe(it) }
+      
         mqttHandler.onMessageReceived = { topic, message ->
-            val server_runnable: Runnable = Runnable {
-                Log.e("SERVER", message)
+          Log.d("MQTT", "onMessageReceived: $topic → $message")
+      
+         if(topic=="/predicted_location") {
+              try {
+                val json = JSONObject(message)
+                val lat  = json.getDouble("latitude")
+                val lon  = json.getDouble("longitude")
+                predictionAnnotationManager.deleteAll()
+
+                val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+                  .withPoint(Point.fromLngLat(lon, lat))
+                  .withCircleColor("#2bff00")
+                  .withCircleRadius(7.0)
+                  .withCircleOpacity(0.9)
+                predictionAnnotationManager.create(circleAnnotationOptions)
+              } catch (e:Exception) {
+                Log.e("MQTT", "Invalid prediction JSON", e)
+              }
             }
-            val thread: Thread = Thread(server_runnable)
-            thread.start()
-        }
-        mqttHandler.publish("/deviceid",deviceID.toString())
+            else {
+                // fall-back logging for everything else
+                Log.e("SERVER", message)
+              }
+            }
+          
+        
+          // let the broker know who you are
+          mqttHandler.publish("/deviceid", deviceID.toString())
     }
 
     private fun publishLocation(point: Point) {
@@ -1824,7 +1854,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
             val currentTimeMillis = System.currentTimeMillis()
             val timeStamp = Timestamp(currentTimeMillis).toString()
             val serverMessage = "point,$long,$lat,$timeStamp"
-            for (i in 1..5)  mqttHandler.publish("/gps", "GPS,$randomDeviceID,$timeStamp, $lat, $long")
+            for (i in 1..2)  mqttHandler.publish("/gps", "GPS,$randomDeviceID,$timeStamp, $lat, $long")
 
         }
     }
@@ -1883,7 +1913,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                         val timeStamp = Timestamp(currentTimeMillis).toString()
                         val latitude_GPS = result?.latitude
                         val longitude_GPS = result?.longitude
-//                        mqttHandler.publish("/gps", "GPS,$randomDeviceID,$timeStamp, $latitude_GPS, $longitude_GPS")
+                        mqttHandler.publish("/gps", "GPS_RAW,$randomDeviceID,$timeStamp, $latitude_GPS, $longitude_GPS")
                     }
                     lastUpdate = actualTime
                 } //The way the readings are set up to be published is just a test
