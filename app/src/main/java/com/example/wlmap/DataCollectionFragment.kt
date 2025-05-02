@@ -1350,8 +1350,11 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         mapView.gestures.pinchToZoomEnabled = true
 
         // Load custom on-device style
-        mapView.mapboxMap.loadStyle(style = STYLE_CUSTOM)
-
+        mapView.mapboxMap.loadStyle(style = STYLE_CUSTOM) { style ->
+            // now that the style is ready, you can
+            initManagers()
+            initMQTTHandler()
+        }
         // Get and load the style for floor 1 of Davis Hall
         mapView.mapboxMap.getStyle { style ->
             val layer = style.getLayerAs<FillLayer>(FLOOR1_LAYOUT)
@@ -1821,15 +1824,14 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
                 val json = JSONObject(message)
                 val lat  = json.getDouble("latitude")
                 val lon  = json.getDouble("longitude")
-                  predictionAnnotationManager.deleteAll()
+                predictionAnnotationManager.deleteAll()
 
-                  val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
-                      .withPoint(Point.fromLngLat(lon, lat))
-                      .withCircleColor("#2bff00")
-                      .withCircleRadius(7.0)
-                      .withCircleOpacity(0.9)
-
-                  predictionAnnotationManager.create(circleAnnotationOptions)
+                val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+                  .withPoint(Point.fromLngLat(lon, lat))
+                  .withCircleColor("#2bff00")
+                  .withCircleRadius(7.0)
+                  .withCircleOpacity(0.9)
+                predictionAnnotationManager.create(circleAnnotationOptions)
               } catch (e:Exception) {
                 Log.e("MQTT", "Invalid prediction JSON", e)
               }
