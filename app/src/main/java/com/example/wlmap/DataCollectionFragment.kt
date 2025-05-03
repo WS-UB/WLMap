@@ -181,9 +181,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         }
     }
 
-    var runnable: Runnable = Runnable {
-        initMQTTHandler()
-    }
+
 
     // This function handles navigation item selections from a navigation drawer.
     // It overrides the 'onNavigationItemSelected' method of the NavigationView.OnNavigationItemSelectedListener interface.
@@ -208,8 +206,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         // To start the MQTT Handler -- You must have:
         // 1. Server containers launched
         // 2. Connection to UB VPN or UB network
-        val thread: Thread = Thread(runnable)
-        thread.start()
+
 
 
 
@@ -247,6 +244,7 @@ class DataCollectionFragment : Fragment(),NavigationView.OnNavigationItemSelecte
         }
 
         initManagers()
+        initMQTTHandler()
 
         // Add the button that can send the user's location to the server and rate their
         // confirmation rate.
