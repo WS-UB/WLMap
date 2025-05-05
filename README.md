@@ -91,7 +91,7 @@ For specific inquiries on the specific feature branches, check below for the fol
 1. [random_deviceID.md](/docs/random_deviceID.md)
 1. [Troubleshooting.md](/docs/Troubleshooting.md)
 1. [Update-Location-documentation.md](/docs/Update-Location-documentation.md)
-1. [Prediction_gps_Yufeng,md](/docs/Prediction_gps_Yufeng.md)
+1. [Prediction_gps.md](/docs/Prediction_gpsmd)
 
 ## Project Roadmap
 
@@ -100,6 +100,7 @@ For specific inquiries on the specific feature branches, check below for the fol
 - [x] Enable the feature to fill in the information on the Share Data page.
 - [x] Integrating the interactive map fragment into the Navigation and Data Collection button.
 - [x] The Data Collection page can send the user's rate of confidence about their location on the map to the log.
+- [x] The Navigation page can see the prediction location(green dot) and navigate to the destination position(yellow dot)
 
 ### User readings
 
