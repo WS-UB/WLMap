@@ -44,6 +44,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import android.location.LocationListener
+import android.provider.Settings
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
@@ -92,6 +93,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.eclipse.paho.client.mqttv3.MqttException
 import org.json.JSONArray
+import org.json.JSONObject
 import java.math.RoundingMode
 import java.sql.Timestamp
 import kotlin.math.atan2
@@ -99,6 +101,7 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.random.Random
 
 
 class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -119,6 +122,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private var server_data = emptyList<String>()
     private val testUserLocation = Point.fromLngLat(-78.78755328875651, 43.002534795993796)
     private var lastUpdate: Long = 0
+    private val randomDeviceID = Random.nextLong(100000000000, 999999999999).toString() + "_DC"
 
 
     private lateinit var mqttHandler: MqttHandler
@@ -128,6 +132,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private lateinit var doorAnnotationManager: CircleAnnotationManager
     private lateinit var pointAnnotationManager: CircleAnnotationManager
     private lateinit var polylineAnnotationManager: PolylineAnnotationManager
+    private lateinit var predictionAnnotationManager: CircleAnnotationManager
     private lateinit var mapView: MapView
     private lateinit var buttonF1: Button
     private lateinit var buttonF3: Button
@@ -345,7 +350,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                             }
 
                             // Store last location for nav routing algorithm
-                            userLastLocation = point
+//                            userLastLocation = point
 
                             // Create and add the new circle annotation to the map
                             circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
@@ -1161,6 +1166,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         userAnnotationManager = annotationAPI.createCircleAnnotationManager()
         doorAnnotationManager = annotationAPI.createCircleAnnotationManager()
         pointAnnotationManager = annotationAPI.createCircleAnnotationManager()
+        predictionAnnotationManager = annotationAPI.createCircleAnnotationManager()
     }
 
     private fun userLocationPuck() {
@@ -1859,13 +1865,39 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
         mqttHandler = MqttHandler()
         mqttHandler.connect(serverUri, clientId)
         mqttHandler.subscribe("test/topic")
+        mqttHandler.subscribe("/imu")
+        mqttHandler.subscribe("/gps")
+        mqttHandler.subscribe("/predicted_location")
         mqttHandler.onMessageReceived = { topic, message ->
-            val server_runnable: Runnable = Runnable {
+            Log.d("MQTT", "onMessageReceived: $topic → $message")
+
+            if(topic=="/predicted_location") {
+                try {
+                    val json = JSONObject(message)
+                    val lat  = json.getDouble("latitude")
+                    val lon  = json.getDouble("longitude")
+                    predictionAnnotationManager.deleteAll()
+
+                    val circleAnnotationOptions: CircleAnnotationOptions = CircleAnnotationOptions()
+                        .withPoint(Point.fromLngLat(lon, lat))
+                        .withCircleColor("#2bff00")
+                        .withCircleRadius(7.0)
+                        .withCircleOpacity(0.9)
+                    predictionAnnotationManager.create(circleAnnotationOptions)
+                    userLastLocation = Point.fromLngLat(lon, lat)
+                } catch (e:Exception) {
+                    Log.e("MQTT", "Invalid prediction JSON", e)
+                }
+            }
+            else {
+                // fall-back logging for everything else
                 Log.e("SERVER", message)
             }
-            val thread: Thread = Thread(server_runnable)
-            thread.start()
         }
+
+
+        // let the broker know who you are
+        mqttHandler.publish("/deviceid", deviceID.toString())
     }
 
     private fun publishLocation(point: Point) {
@@ -1943,7 +1975,7 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
                 }
 
                 // Store last location for nav routing algorithm
-                userLastLocation = point
+//                userLastLocation = point
 
                 // Create and add the new circle annotation to the map
                 circleAnnotationId = userAnnotationManager.create(circleAnnotationOptions)
@@ -2021,73 +2053,82 @@ class MapFragment : Fragment(),NavigationView.OnNavigationItemSelectedListener, 
     private var lastPublishTime = 0L
     private val publishInterval = 20L // 1 second
 
+    @SuppressLint("HardwareIds")
     override fun onSensorChanged(event: SensorEvent?) {
-        val currentTime = System.currentTimeMillis()
         if(event?.sensor?.type == Sensor.TYPE_ACCELEROMETER){
             val actualTime = event.timestamp
-            if (actualTime - lastUpdate > 400000000){
+            // Send a message every 8 milliseconds to avoid race condition
+            // Don't set this anywhere lower than 5 milliseconds or that will happen!
+            if (actualTime - lastUpdate > 300000000){
                 wifiManager = requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
+                val uId = Settings.Secure.getString(context?.contentResolver, Settings.Secure.ANDROID_ID)
                 val mac_address = wifiManager.connectionInfo.macAddress
-                val x = event.values[0]
-                val y = event.values[1]
-                val z = event.values[2]
-                val t = "accelerator:"
-                val comma= ", "
+                val x=event.values[0]
+                val y= event.values[1]
+                val z= event.values[2]
+                val t="accelerator,"
+                val comma= ","
+                accreadings=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
                 b.apply{
                     val currentTimeMillis = System.currentTimeMillis()
                     val timeStamp = Timestamp(currentTimeMillis).toString()
                     text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-//                    mqttHandler.publish("test/topic", "accelerator: $x, $y, $z")
+                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(randomDeviceID)
+                    mqttHandler.publish("/imu",serverMessage)
                     locationProvider?.getLastLocation { result ->
                         val currentTimeMillis = System.currentTimeMillis()
                         val timeStamp = Timestamp(currentTimeMillis).toString()
                         val latitude_GPS = result?.latitude
                         val longitude_GPS = result?.longitude
-//                        mqttHandler.publish("test/topic", "accelerator: $x, $y, $z\ncoordinates: $latitude_GPS, $longitude_GPS\ntimestamp: $timeStamp\nmacAddress: $mac_address")
+                        mqttHandler.publish("/gps", "GPS_RAW,$randomDeviceID,$timeStamp, $latitude_GPS, $longitude_GPS")
+                        mqttHandler.publish("/gps", "GPS,$randomDeviceID,$timeStamp, $latitude_GPS, $longitude_GPS")
                     }
+                    lastUpdate = actualTime
                 } //The way the readings are set up to be published is just a test
 
-                g.apply{
-                    val x= 0.0
-                    val y= 0.0
-                    val z= 0.0
-                    val t="gyroscope:"
-                    val currentTimeMillis = System.currentTimeMillis()
-                    val timeStamp = Timestamp(currentTimeMillis).toString()
-                    text=t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    val serverMessage: String = t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma).plus(timeStamp).plus(comma).plus(mac_address)
-                    locationProvider?.getLastLocation { result ->
-                        val currentTimeMillis = System.currentTimeMillis()
-                        val timeStamp = Timestamp(currentTimeMillis).toString()
-                        val latitude_GPS = result?.latitude
-                        val longitude_GPS = result?.longitude
-                        mqttHandler.publish("test/topic", "macAddress: $mac_address\ntimestamp: $timeStamp\ngyro: $x, $y, $z\naccel: $x, $y, $z\nGPS: $latitude_GPS, $longitude_GPS")
-                    }
-//                    mqttHandler.publish("test/topic", "gyroscope: $x, $y, $z\n")
-                    lastUpdate = actualTime
-                }
+//                g.apply {
+//                    val x = 0.0
+//                    val y = 0.0
+//                    val z = 0.0
+//                    val t = "gyroscope,"
+//                    gyroreadings = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                    val currentTimeMillis = System.currentTimeMillis()
+//                    val timeStamp = Timestamp(currentTimeMillis).toString()
+//                    text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+//                    val serverMessage: String =
+//                        t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma)
+//                            .plus(timeStamp).plus(comma).plus(mac_address)
+//                    mqttHandler.publish("/imu", serverMessage)
+//                    lastUpdate = actualTime
+//                }
             }
-
-            if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
+            //mqttHandler.publish("test/topic",t.plus(x).plus(comma).plus(y).plus(comma).plus(z) )
+        }
+        if(event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
+            val actualTime = event.timestamp
+            if (actualTime - lastUpdate > 300000000) {
+                wifiManager =
+                    requireActivity().getSystemService(Context.WIFI_SERVICE) as WifiManager
+                val uId =
+                    Settings.Secure.getString(context?.contentResolver, Settings.Secure.ANDROID_ID)
+                val mac_address = wifiManager.connectionInfo.macAddress
                 val x = event.values[0]
                 val y = event.values[1]
                 val z = event.values[2]
-                val t = "gyroscope:"
-                val comma = ", "
-
-                b.apply {
+                val comma = ","
+                g.apply {
+                    val t = "gyroscope,"
+                    gyroreadings = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
+                    val currentTimeMillis = System.currentTimeMillis()
+                    val timeStamp = Timestamp(currentTimeMillis).toString()
                     text = t.plus(x).plus(comma).plus(y).plus(comma).plus(z)
-                    gyroreadings = "$t, $x, $y, $z\n"
+                    val serverMessage: String =
+                        t.plus(x).plus(comma).plus(y).plus(comma).plus(z).plus(comma)
+                            .plus(timeStamp).plus(comma).plus(randomDeviceID)
+                    mqttHandler.publish("/imu", serverMessage)
+                    lastUpdate = actualTime
                 }
-                mqttHandler.publish("/deviceid", deviceID.toString())
             }
-
-//            GlobalScope.launch(Dispatchers.IO) {
-//                mqttHandler.publish("/deviceid", deviceID.toString())
-//            }
-
-            lastPublishTime = currentTime
         }
     }
 
